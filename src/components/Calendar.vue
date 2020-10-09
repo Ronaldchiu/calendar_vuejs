@@ -47,6 +47,7 @@
 </template>
 
 <script>
+import calendar from './calendar'
 export default {
   name: 'Calendar',
   data () {
@@ -116,6 +117,7 @@ export default {
       if (firstDay > 0) {
         const lastMonthdays = new Date(this.selectYear, this.selectMonth - 1, 0).getDate() // 上个月总天数
         for (let i = lastMonthdays - firstDay; i <= lastMonthdays; i++) {
+          console.log(calendar.solar2lunar(this.selectYear, this.selectMonth - 1, i))
           this.dates.push({
             day: i,
             year: this.selectYear,
