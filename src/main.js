@@ -4,6 +4,8 @@ import router from './router'
 import store from './store'
 import fastclick from 'fastclick'
 import './assets/css/base.scss'
+import './assets/css/iconfont.css'
+
 fastclick.attach(document.body)
 Vue.config.productionTip = false
 
