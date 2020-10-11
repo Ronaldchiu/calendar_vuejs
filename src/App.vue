@@ -15,8 +15,6 @@
 .test {
   width: 100px;
   height: 100px;
-  font-size: 24px;
-  color: #ffff;
-  background: blue;
+  background: blueviolet;
 }
 </style>

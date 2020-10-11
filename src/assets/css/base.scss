@@ -1,6 +1,7 @@
 @import "./reset.scss";
 @import "./variable.scss";
 @import "./mixin.scss";
+// @import "./iconfont";
 
 html, body{
   width: 100%;
@@ -10,8 +11,8 @@ html, body{
   touch-action: none;
 }
 body{
-  @include font_size($font_medium);
-  //@include font_size(50px);
+  // @include font_size($font_medium);
+  @include font_size(50px);
   //font-size: 50px;
   font-family: Helvetica,sans-serif,STHeiTi;
 }
