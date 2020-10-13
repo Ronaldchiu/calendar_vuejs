@@ -163,8 +163,6 @@ export default {
       // 3-1. 若当月的第一天不是周日，则在第一天前补充上个月的日期
       if (firstDay > 0) {
         const lastMonthdays = new Date(this.selectYear, this.selectMonth - 1, 0).getDate() // 上个月总天数
-        console.log(lastMonthdays)
-        console.log(firstDay)
         for (let i = lastMonthdays - firstDay + 1; i <= lastMonthdays; i++) {
           const dateStr = this.selectMonth - 1 + '-' + i
           const lunarDates = calendar.solar2lunar(this.selectYear, this.selectMonth - 1, i)
