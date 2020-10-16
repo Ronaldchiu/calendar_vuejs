@@ -1,18 +1,17 @@
 <template>
   <div class="calendar">
-    <h4>当前选择的日期为：{{ selectYear }}年{{ selectMonth }}月{{ selectDay }}日 星期{{ selectWeek }}</h4>
-    <h4>农历: {{selectLunarMonth}}{{selectLunarDay}}</h4>
+    <h4>{{ selectYear }}年{{ selectMonth }}月{{ selectDay }}日 星期{{ selectWeek }} 农历{{selectLunarMonth}}{{selectLunarDay}}</h4>
      <div class="container">
         <!-- 年月日选择框 -->
-        <div class="select">
-            <i class="iconfont icon-arrow-left"  @click="arrowChangeMonth(0)" v-if="!showMonth" :class="{disabled: this.showYear && this.currentCutYearsIndex === 0}"></i>
+        <div class="select" @click="arrowChangeMonth(0)" v-if="!showMonth" :class="{disabled: this.showYear && this.currentCutYearsIndex === 0}" >
+            <i class="iconfont icon-arrow-left"></i>
             <div class="select_wrapper year">
                 <div class="select_result" @click="handleSelectYear"> {{ selectYear }}年</div>
             </div>
-            <div class="select_wrapper month">
-                <div class="select_result"  @click="showSelectPanel = true; showMonth = true; showYear = false">{{ selectMonth }}月</div>
+            <div class="select_wrapper" v-if="display"  >
+                <div class = "topbar"> {{ selectYear }}年 {{ curmon }}月</div>
             </div>
-            <i class="iconfont icon-arrow-right" @click="arrowChangeMonth(1)" v-if="!showMonth" :class="{disabled: this.showYear && this.currentCutYearsIndex === this.cutYears.length - 1}"></i>
+            <!-- <i class="iconfont icon-arrow-right" @click="arrowChangeMonth(1)" v-if="!showMonth" :class="{disabled: this.showYear && this.currentCutYearsIndex === this.cutYears.length - 1}"></i> -->
         </div>
         <!-- 选择年/月面板 -->
         <div class="select-panel" v-show="showSelectPanel">
@@ -20,7 +19,7 @@
             <li v-for="item of displayYears" :key="item" @click="changeYear(item)"> {{ item }} </li>
           </ul>
           <ul class="month" v-else>
-            <li v-for="item of 12" :key="item" @click="changeMonth(item)"> {{ item }} </li>
+            <li v-for="item of 12" :key="item" @click="displayMonth(item)"> {{ item }} </li>
           </ul>
         </div>
         <!-- 日历面板 -->
@@ -30,38 +29,51 @@
               <li v-for="item in weekList" :key="item">{{ item }}</li>
             </ol>
           </dt>
-          <dd
-              v-for="(day, index) in dates"
-              :key="index"
-              :class="[
-                day.class,
-                day.isActive ? 'active' : '',
-                day.day === today && day.year === year && day.month === month && day.class === 'current-month' ? 'today' : ''
-              ]"
-              @click="handleDayClick(day, index)"
-          >
-            <!-- 显示公历日 -->
-            <div class="calendar_day">{{ day.day}}</div>
-            <!-- 判断是否为公历节日 -->
-            <span v-if="day.festival != undefined" style="color: #ff6300">{{day.festival}}</span>
-            <!-- 判断是否为农历节日 -->
-            <span v-else-if="day.lunarFestival != undefined" style="color: #ff6300">{{day.lunarFestival}}</span>
-            <!-- 判断是否为二十四节气 -->
-            <span v-else-if="day.term != null" style="color: #7180AC">{{day.term}}</span>
-            <!-- 都不是就显示农历日 -->
-            <span v-else>{{day.lunarDay}}</span>
-          </dd>
+          <div class="dayPanel" ref="bscroll" >
+            <div class = "wrapper">
+                <div
+                  v-for="(month, monIndex) in date"
+                  :key="monIndex"
+                  class="scrollItem"
+                  ref="monItem"
+                >
+                    <div class="monthName">{{ monIndex%12 + 1 }}月</div>
+                    <dd
+                        v-for="(day, dayIndex) in month"
+                        :key="dayIndex"
+                        :class="[
+                          day.class,
+                          day.isActive ? 'active' : '',
+                          day.day === today && day.year === year && day.month === month && day.class === 'current-month' ? 'today' : ''
+                        ]"
+                        @click="handleDayClick(day, dayIndex, monIndex)"
+                    >
+                      <!-- 显示公历日 -->
+                      <div class="calendar_day">{{ day.day}}</div>
+                      <!-- 判断是否为公历节日 -->
+                      <span v-if="day.festival != undefined" style="color: #ff6300">{{day.festival}}</span>
+                      <!-- 判断是否为农历节日 -->
+                      <span v-else-if="day.lunarFestival != undefined" style="color: #ff6300">{{day.lunarFestival}}</span>
+                      <!-- 判断是否为二十四节气 -->
+                      <span v-else-if="day.term != null" style="color: #7180AC">{{day.term}}</span>
+                      <!-- 都不是就显示农历日 -->
+                      <span v-else>{{day.lunarDay}}</span>
+                    </dd>
+                </div>
+            </div>
+          </div>
         </dl>
      </div>
-     <div class="curMonth_Btn" @click="backToday">返回本月</div>
+     <!-- <div class="curMonth_Btn" @click="backToday">返回本月</div>
      <div class="today_info" @click="showTodayInfo = !showTodayInfo;" >今天 {{month}}月 {{today}}日 星期{{this.week}}</div>
      <div v-show="showTodayInfo" class="todayPannel">
-     </div>
+     </div> -->
   </div>
 </template>
 
 <script>
 import calendar from './calendar'
+import BScroll from 'better-scroll'
 export default {
   name: 'Calendar',
   data () {
@@ -104,13 +116,26 @@ export default {
         '正月-十五': '元宵节',
         '四月-初四': '清明节',
         '五月-初五': '端午节',
-        '八月-十五': '中秋节',
         '九月-初九': '重阳节'
-      }
+      },
+      date: [],
+      scrollY: 0,
+      display: false,
+      curyear: 2020,
+      curmon: 10
     }
   },
   mounted () {
     this.createYear()
+    this.createCalendar()
+    for (let i = 1; i <= 12; i++) {
+      this.displayMonth(i)
+      this.date.push(this.dates)
+    }
+    this.selectMonth = new Date().getMonth() + 1
+    this.$nextTick(() => {
+      this.initScroll()
+    })
   },
   created () {
     this.createCalendar()
@@ -122,6 +147,30 @@ export default {
     this.selectLunarMonth = this.dates[todayIndex].lunarMonth // 当天的农历月
     this.selectLunarDay = this.dates[todayIndex].lunarDay // 当天的农历日
   },
+  watch: {
+    scrollY (newValue, oldValue) {
+      if (newValue > 7000) {
+        oldValue = 10
+        this.selectYear++
+        this.createCalendar()
+        for (let i = 1; i <= 12; i++) {
+          this.displayMonth(i)
+          this.date.push(this.dates)
+        }
+        this.bscroll.scrollToElement(this.$refs.monItem[1], 10, 0, true, 'easing')
+      }
+      if (newValue < 500) {
+        this.selectYear--
+        this.createCalendar()
+        for (let i = 1; i <= 12; i++) {
+          this.displayMonth(i)
+          this.date.push(this.dates)
+        }
+        this.bscroll.scrollToElement(this.$refs.monItem[12], 50, 0, true, 'easing')
+      }
+      this.curmon = Math.abs(Math.ceil(newValue / (8000 / 12)))
+    }
+  },
   computed: {
     // 返回年份所在的分割数组（12个年份）
     displayYears () {
@@ -129,6 +178,21 @@ export default {
     }
   },
   methods: {
+    initScroll () {
+      const bscroll = this.$refs.bscroll
+      this.bscroll = new BScroll(bscroll, { // 用better-scroll依赖创建实例方法bscroll
+        scrollY: true, // Y轴滚动
+        probeType: 1,
+        click: true
+      })
+      const element = this.$refs.monItem[new Date().getMonth()] // 拿到当前月份的div元素
+      this.bscroll.scrollToElement(element, 300, 0, true, 'easing') // better-scroll实例有个scrollToElement方法滚动到element
+      this.bscroll.on('scroll', (pos) => {
+        this.scrollY = Math.abs(Math.round(pos.y))
+        console.log(this.scrollY)
+        this.display = true
+      })
+    },
     backToday () {
       this.selectYear = new Date().getFullYear()
       this.selectMonth = new Date().getMonth() + 1
@@ -191,7 +255,6 @@ export default {
         const dateStr = this.selectMonth + '-' + i
         const lunarDates = calendar.solar2lunar(this.selectYear, this.selectMonth, i)
         const lunarDateStr = lunarDates.IMonthCn + '-' + lunarDates.IDayCn
-        console.log(lunarDates)
         this.dates.push({
           day: i,
           term: lunarDates.Term,
@@ -215,7 +278,7 @@ export default {
       if (nextDays < 7 && nextDays > 0) {
         let day = 0
         for (let i = 0; i < nextDays; i++) {
-          const dateStr = this.selectMonth + 1 + '-' + i
+          const dateStr = this.selectMonth + 1 + '-' + (i + 1)
           const lunarDates = calendar.solar2lunar(this.selectYear, this.selectMonth + 1, i)
           const lunarDateStr = lunarDates.IMonthCn + '-' + lunarDates.IDayCn
           this.dates.push({
@@ -239,16 +302,24 @@ export default {
       }
     },
     // 日期点击事件
-    handleDayClick (day, index) {
-      this.selectWeek = this.weekList[index % 7] // 选中日期的星期
+    handleDayClick (day, dayIndex, monIndex) {
+      this.selectWeek = this.weekList[dayIndex % 7] // 选中日期的星期
       if (day.class !== 'current-month') return // 非当月日期无法被选中
-      this.dates.forEach((cur, index2) => {
-        if (index === index2) {
+      for (let i = 0; i < this.date.length; i++) {
+        for (let j = 0; j < this.date[i].length; j++) {
+          this.date[i][j].isActive = false
+        }
+      }
+      this.date[monIndex].forEach((cur, index) => {
+        if (dayIndex === index) {
           cur.isActive = true // 日期被选中
         } else {
           cur.isActive = false
         }
       })
+      console.log('day:')
+      console.log(day)
+      this.selectMonth = day.month // 选中日期的月
       this.selectDay = day.day // 选中日期的日
       this.selectLunarMonth = day.lunarMonth // 选中日期的农历月
       this.selectLunarDay = day.lunarDay // 选中日期的农历日
@@ -261,7 +332,7 @@ export default {
       this.createCalendar()
     },
     // 改变月份
-    changeMonth (month) {
+    displayMonth (month) {
       this.selectMonth = month
       this.showSelectPanel = false
       this.showMonth = false
@@ -281,16 +352,16 @@ export default {
       if (method === 0) {
         if (this.selectMonth === 1) {
           this.selectYear--
-          this.changeMonth(12)
+          this.displayMonth(12)
         } else {
-          this.changeMonth(this.selectMonth - 1)
+          this.displayMonth(this.selectMonth - 1)
         }
       } else {
         if (this.selectMonth === 12) {
           this.selectYear++
-          this.changeMonth(1)
+          this.displayMonth(1)
         } else {
-          this.changeMonth(this.selectMonth + 1)
+          this.displayMonth(this.selectMonth + 1)
         }
       }
     },
@@ -328,7 +399,8 @@ h4 {
 .select {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: left;
+    margin-bottom: 20px;
     // @include font_size($font_medium_s)
     i {
         width:10px;
@@ -345,11 +417,11 @@ h4 {
     }
 
     .icon-arrow-left {
-        margin-right: auto;
+        margin-right: 30px;
     }
-    .icon-arrow-right {
-        margin-left: auto;
-    }
+    // .icon-arrow-right {
+    //     margin-left: auto;
+    // }
 }
 .select_result {
     @include font_size($font_medium_s);
@@ -385,6 +457,7 @@ dl {
   dd {
     position: relative;
     display: inline-block;
+    margin: 20px, 0, 10px, 0;
     width: 70px;
     height: 40px;
     text-align: center;
@@ -403,9 +476,9 @@ dl {
         position: absolute;
         z-index: -1;
         top: 132%;
-        left: 40%;
-        width: 110%;
-        height: 190%;
+        left: 48%;
+        width: 93%;
+        height: 160%;
         margin: -72% 0 0 -45%;
         border-radius: 50%;
         background-color: transparent;
@@ -430,6 +503,8 @@ dl {
 .weekName {
     width: 500px;
     display: flex;
+    border-bottom: 0.5px solid rgba(0, 0, 0, .4);
+    margin-bottom: 30px;
     li {
       width: 80px;
       height: 40px;
@@ -470,5 +545,24 @@ dl {
   width: 240px;
   height: 200px;
   box-shadow: 0 0 0.03rem rgba(0, 0, 0, 0.2);
+}
+.dayPanel {
+  position: relative;
+  height: 700px;
+  overflow: hidden;
+  overflow-y: scroll;
+}
+.monthName {
+    font-weight: bold;
+    @include font_size($font_large);
+    text-align: left;
+    padding: 10px;
+    margin-bottom: 20px;
+    margin-top: 20px;
+    margin-left: 15px;
+}
+.topbar {
+  margin-left: 80px;
+  @include font_size($font_medium);
 }
 </style>
