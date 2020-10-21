@@ -1,7 +1,7 @@
 <template>
   <div class="calendar">
       <div class="container">
-          <div>{{curYear}}年{{curMonth}}月</div>
+          <div class="scroll-date">{{curYear}}年{{scrollMonth}}月</div>
           <!-- 日历面板 -->
           <div class="calendarPanel">
               <div class="weekPanel">
@@ -9,7 +9,7 @@
               </div>
               <div class="dayPanel" ref="scrollList" @scroll="handleScroll">
                     <div class="daySeciton">
-                        <div v-for="(month, monIndex) in date" :key="monIndex">
+                        <div v-for="(month, monIndex) in date" :key="monIndex" ref="monItem">
                             <div class="monthName" ref="monTitle" :style="{ marginLeft: month.lastWidth + 'px'}">{{monIndex + 1}}月</div>
                             <ul v-for="(day, dayIndex) in month.dates" :key="dayIndex" :class="day.class">
                                 <li>{{day.day}}</li>
@@ -31,7 +31,8 @@ export default {
       curYear: new Date().getFullYear(),
       curMonth: new Date().getMonth() + 1,
       dates: [],
-      date: []
+      date: [],
+      scrollMonth: 10
     }
   },
   mounted () {
@@ -46,22 +47,30 @@ export default {
         lastWidth: arr.length * 108
       })
     }
-  },
-  updated () {
-    // let len = this.date.length
-    // let scrollList = this.$refs.scrollList
-    // let monthHeight = Math.ceil(scrollList.offsetHeight / len)
-    // for (let i = 0; i < 12; i++) {
-    //   const count = this.date[i].lastWidth
-    // }
+    this.$nextTick(function () {
+      this.initScroll()
+    })
   },
   // 创建日历
   methods: {
+    initScroll () { // 日历显示初始位置，即滚动到2020年10月份的
+      const element = this.$refs.monItem
+      let eleHeight = 0
+      for (let i = 0; i < new Date().getMonth(); i++) {
+        eleHeight += element[i].offsetHeight
+      }
+      if (this.curYear === new Date().getFullYear()) {
+        this.$refs.scrollList.scrollTo(0, eleHeight)
+      }
+    },
     handleScroll (e) {
-      console.log(e.target.scrollHeight)
-      if (e.target.scrollTop === 0) {
-        e.target.scrollTop = e.target.scrollHeight
-        this.curYear--
+      console.log(e.target.scrollTop)
+      if (e.target.scrollTop === 0) { // 如果滚动到顶部，就推到前一年的日历
+        // console.log('sdada')
+        this.$nextTick(function () {
+          this.$refs.scrollList.scrollTo(0, e.target.scrollHeight - e.target.clientHeight)
+          this.curYear--
+        })
         this.date = []
         this.createCurDate()
         for (let i = 1; i <= 12; i++) {
@@ -75,7 +84,7 @@ export default {
           })
         }
       }
-      if (e.target.scrollTop > e.target.scrollHeight) {
+      if (e.target.scrollTop >= (e.target.scrollHeight - e.target.clientHeight)) {
         e.target.scrollTop = 0
         this.curYear++
         this.date = []
@@ -91,6 +100,8 @@ export default {
           })
         }
       }
+      const distance = e.target.scrollHeight - e.target.clientHeight
+      this.scrollMonth = Math.abs(Math.ceil((e.target.scrollTop + 10) / (distance / 12)))
     },
     createCurDate () {
       const curMonthdays = new Date(this.curYear, this.curMonth, 0).getDate() // 获取当月的天数
@@ -193,4 +204,9 @@ export default {
         }
     }
 }
+.scroll-date {
+    @include font_size($font_medium);
+    text-align: center;
+}
+
 </style>
