@@ -10,9 +10,13 @@
               <div class="dayPanel" ref="scrollList" @scroll="handleScroll">
                     <div class="daySeciton">
                         <div v-for="(month, monIndex) in date" :key="monIndex" ref="monItem">
-                            <div class="monthName" ref="monTitle" :style="{ marginLeft: month.lastWidth + 'px'}">{{monIndex + 1}}月</div>
-                            <ul v-for="(day, dayIndex) in month.dates" :key="dayIndex" :class="day.class">
-                                <li>{{day.day}}</li>
+                            <div class="monthName" :style="{ marginLeft: month.lastWidth + 'px'}">{{monIndex + 1}}月</div>
+                            <ul v-for="(day, dayIndex) in month.dates" :key="dayIndex"
+                            :class="[day.class,
+                            day.day === selectToday && day.year === selectYear & day.class === 'curMonth' && day.month === selectMonth ? 'today' : '']"
+                            @click="handleDayClick(day, dayIndex)"
+                            >
+                                <li ref="dayItem">{{day.day}}</li>
                             </ul>
                         </div>
                     </div>
@@ -30,13 +34,16 @@ export default {
       weekList: ['日', '一', '二', '三', '四', '五', '六'], // 星期数组
       curYear: new Date().getFullYear(),
       curMonth: new Date().getMonth() + 1,
+      selectToday: new Date().getDate(),
+      selectYear: new Date().getFullYear(),
+      selectMonth: new Date().getMonth() + 1,
       dates: [],
       date: [],
-      scrollMonth: 10
+      scrollMonth: 10,
+      dayWidth: 110
     }
   },
   mounted () {
-    this.createCurDate()
     for (let i = 1; i <= 12; i++) {
       this.createCurMonth(i)
       const arr = this.dates.filter((item) => {
@@ -44,15 +51,19 @@ export default {
       })
       this.date.push({
         dates: this.dates,
-        lastWidth: arr.length * 108
+        lastWidth: arr.length * this.dayWidth
       })
     }
-    this.$nextTick(function () {
+    this.$nextTick(() => {
+      this.dayWidth = this.$refs.dayItem[0].offsetWidth
       this.initScroll()
     })
   },
   // 创建日历
   methods: {
+    handleDayClick (day, dayIndex) {
+      console.log(day.month)
+    },
     initScroll () { // 日历显示初始位置，即滚动到2020年10月份的
       const element = this.$refs.monItem
       let eleHeight = 0
@@ -62,46 +73,6 @@ export default {
       if (this.curYear === new Date().getFullYear()) {
         this.$refs.scrollList.scrollTo(0, eleHeight)
       }
-    },
-    handleScroll (e) {
-      console.log(e.target.scrollTop)
-      if (e.target.scrollTop === 0) { // 如果滚动到顶部，就推到前一年的日历
-        // console.log('sdada')
-        this.$nextTick(function () {
-          this.$refs.scrollList.scrollTo(0, e.target.scrollHeight - e.target.clientHeight)
-          this.curYear--
-        })
-        this.date = []
-        this.createCurDate()
-        for (let i = 1; i <= 12; i++) {
-          this.createCurMonth(i)
-          const arr = this.dates.filter((item) => {
-            return item.class === 'lastMonth'
-          })
-          this.date.push({
-            dates: this.dates,
-            lastWidth: arr.length * 108
-          })
-        }
-      }
-      if (e.target.scrollTop >= (e.target.scrollHeight - e.target.clientHeight)) {
-        e.target.scrollTop = 0
-        this.curYear++
-        this.date = []
-        this.createCurDate()
-        for (let i = 1; i <= 12; i++) {
-          this.createCurMonth(i)
-          const arr = this.dates.filter((item) => {
-            return item.class === 'lastMonth'
-          })
-          this.date.push({
-            dates: this.dates,
-            lastWidth: arr.length * 108
-          })
-        }
-      }
-      const distance = e.target.scrollHeight - e.target.clientHeight
-      this.scrollMonth = Math.abs(Math.ceil((e.target.scrollTop + 10) / (distance / 12)))
     },
     createCurDate () {
       const curMonthdays = new Date(this.curYear, this.curMonth, 0).getDate() // 获取当月的天数
@@ -143,6 +114,45 @@ export default {
     createCurMonth (month) {
       this.curMonth = month
       this.createCurDate()
+    },
+    handleScroll (e) {
+      // console.log(e.target.scrollTop)
+      if (e.target.scrollTop === 0) { // 如果滚动到顶部，就推到前一年的日历
+        this.$nextTick(function () {
+          this.$refs.scrollList.scrollTo(0, e.target.scrollHeight - e.target.clientHeight)
+          this.curYear--
+        })
+        this.date = []
+        this.createCurDate()
+        for (let i = 1; i <= 12; i++) {
+          this.createCurMonth(i)
+          const arr = this.dates.filter((item) => {
+            return item.class === 'lastMonth'
+          })
+          this.date.push({
+            dates: this.dates,
+            lastWidth: arr.length * 108
+          })
+        }
+      }
+      if (e.target.scrollTop === (e.target.scrollHeight - e.target.clientHeight)) {
+        e.target.scrollTop = 0
+        this.curYear++
+        this.date = []
+        this.createCurDate()
+        for (let i = 1; i <= 12; i++) {
+          this.createCurMonth(i)
+          const arr = this.dates.filter((item) => {
+            return item.class === 'lastMonth'
+          })
+          this.date.push({
+            dates: this.dates,
+            lastWidth: arr.length * 108
+          })
+        }
+      }
+      const distance = e.target.scrollHeight - e.target.clientHeight
+      this.scrollMonth = Math.abs(Math.ceil((e.target.scrollTop + 10) / (distance / 12)))
     }
   }
 }
@@ -197,6 +207,9 @@ export default {
         &.lastMonth,
         &.nextMonth {
             color: #bbbbbb;
+        }
+        &.today {
+          color: deepskyblue;
         }
         li {
         font-weight: bold;
