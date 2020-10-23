@@ -1,7 +1,9 @@
 <template>
   <div class="calendar">
       <div class="container">
-          <div class="scroll-date">{{curYear}}年{{scrollMonth}}月</div>
+        <transition name="fade">
+          <div class="scroll-date" v-if="dispaly">{{curYear}}年{{scrollMonth}}月</div>
+        </transition>
           <!-- 日历面板 -->
           <div class="calendarPanel">
               <div class="weekPanel">
@@ -10,7 +12,7 @@
               <div class="dayPanel" ref="scrollList" @scroll="handleScroll">
                     <div class="daySeciton">
                         <div v-for="(month, monIndex) in date" :key="monIndex" ref="monItem">
-                            <div class="monthName" :style="{ marginLeft: month.lastWidth + 'px'}">{{monIndex + 1}}月</div>
+                            <div class="monthName" :style="{ marginLeft: month.lastWidth + 'px'}">{{month.month}}月</div>
                             <ul v-for="(day, dayIndex) in month.dates" :key="dayIndex"
                             :class="[day.class,
                             day.day === selectToday && day.year === selectYear & day.class === 'curMonth' && day.month === selectMonth ? 'today' : '']"
@@ -40,7 +42,10 @@ export default {
       dates: [],
       date: [],
       scrollMonth: 10,
-      dayWidth: 110
+      dayWidth: 110,
+      scrollTop: 0,
+      oldscrollTop: 0,
+      dispaly: true
     }
   },
   mounted () {
@@ -51,13 +56,29 @@ export default {
       })
       this.date.push({
         dates: this.dates,
-        lastWidth: arr.length * this.dayWidth
+        lastWidth: arr.length * this.dayWidth,
+        month: this.dates[i].month
       })
     }
     this.$nextTick(() => {
       this.dayWidth = this.$refs.dayItem[0].offsetWidth
       this.initScroll()
     })
+  },
+  watch: {
+    scrollTop (newVal, oldVal) {
+      setTimeout(() => {
+        if (newVal === this.scrollTop) {
+          console.log('滚动结束')
+          this.oldscrollTop = newVal
+          this.dispaly = false
+        }
+      }, 200)
+      if (this.oldscrollTop === oldVal) {
+        console.log('滚动开始')
+        this.dispaly = true
+      }
+    }
   },
   // 创建日历
   methods: {
@@ -117,6 +138,7 @@ export default {
     },
     handleScroll (e) {
       // console.log(e.target.scrollTop)
+      this.scrollTop = e.target.scrollTop
       if (e.target.scrollTop === 0) { // 如果滚动到顶部，就推到前一年的日历
         this.$nextTick(function () {
           this.$refs.scrollList.scrollTo(0, e.target.scrollHeight - e.target.clientHeight)
@@ -131,7 +153,7 @@ export default {
           })
           this.date.push({
             dates: this.dates,
-            lastWidth: arr.length * 108
+            lastWidth: arr.length * this.dayWidth
           })
         }
       }
@@ -147,7 +169,7 @@ export default {
           })
           this.date.push({
             dates: this.dates,
-            lastWidth: arr.length * 108
+            lastWidth: arr.length * this.dayWidth
           })
         }
       }
@@ -167,7 +189,7 @@ export default {
     margin-top: 50px;
 }
 .container {
-    height: 1200px;
+    // height: 1200px;
     @include font_size($font_small);
     border: 0.8px solid rgba(0, 0, 0, 0.4);
     border-top: 0
@@ -180,12 +202,13 @@ export default {
         width: 14%;
         height: 40px;
         text-align: center;
+        font-weight: bold;
         line-height: 40px;
     }
 }
 .dayPanel {
     position: relative;
-    height: 1100px;
+    height: 100vh;
     overflow: hidden;
     overflow-y: scroll;
     .monthName {
@@ -201,15 +224,17 @@ export default {
         position: relative;
         display: inline-block;
         width: 14%;
-        height: 60px;
+        height: 100px;
         text-align: center;
-        line-height: 60px;
+        line-height: 100px;
         &.lastMonth,
         &.nextMonth {
             color: #bbbbbb;
         }
         &.today {
-          color: deepskyblue;
+          background: red;
+          color: #ffffff;
+          border-radius: 50%;
         }
         li {
         font-weight: bold;
@@ -218,8 +243,17 @@ export default {
     }
 }
 .scroll-date {
-    @include font_size($font_medium);
+    position: fixed;
+    top: 100px;
+    left: 40%;
+    @include font_size($font_large);
+    font-weight: bold;
     text-align: center;
 }
-
+.fade-enter-active, .fade-leave-active {
+  transition: opacity .5s;
+}
+.fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
+  opacity: 0;
+}
 </style>
