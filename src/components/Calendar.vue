@@ -1,8 +1,12 @@
 <template>
   <div class="calendar">
+      <transition name="fade">
+          <div v-show="isShow" class="titel">当前选择的日期为：{{ displayYear }}年{{ displayMonth }}月{{ displayDay }}日 星期{{ displayWeek }}</div>
+      </transition>
       <div class="container">
+         <!-- 浮动日期 -->
         <transition name="fade">
-          <div class="scroll-date" v-if="dispaly">{{curYear}}年{{scrollMonth}}月</div>
+          <div class="scroll-date" v-if="dispaly">{{scrollYear}}年{{scrollMonth}}月</div>
         </transition>
           <!-- 日历面板 -->
           <div class="calendarPanel">
@@ -11,16 +15,19 @@
               </div>
               <div class="dayPanel" ref="scrollList" @scroll="handleScroll">
                     <div class="daySeciton">
-                        <div v-for="(month, monIndex) in date" :key="monIndex" ref="monItem">
-                            <div class="monthName" :style="{ marginLeft: month.lastWidth + 'px'}">{{month.month}}月</div>
-                            <ul v-for="(day, dayIndex) in month.dates" :key="dayIndex"
-                            :class="[day.class,
-                            day.day === selectToday && day.year === selectYear & day.class === 'curMonth' && day.month === selectMonth ? 'today' : '']"
-                            @click="handleDayClick(day, dayIndex)"
-                            >
-                                <li ref="dayItem">{{day.day}}</li>
-                            </ul>
-                        </div>
+                        <div v-for="(year, yearIndex) in yearData" :key="yearIndex" ref="yearItem">
+                            <div v-for="(month, monIndex) in year" :key="monIndex" ref="monItem">
+                                <div class="monthName" :style="{ marginLeft: month.lastWidth + 'px'}">{{month.month}}月</div>
+                                <ul v-for="(day, dayIndex) in month.dayData" :key="dayIndex"
+                                :class="[day.class,
+                                day.isActive ? 'active' : '',
+                                day.day === selectToday && day.year === selectYear & day.class === 'curMonth' && day.month === selectMonth ? 'today' : '']"
+                                @click="handleDayClick(day, dayIndex, monIndex, yearIndex)"
+                                >
+                                    <li ref="dayItem">{{day.day}}</li>
+                                </ul>
+                            </div>
+                          </div>
                     </div>
               </div>
           </div>
@@ -39,26 +46,40 @@ export default {
       selectToday: new Date().getDate(),
       selectYear: new Date().getFullYear(),
       selectMonth: new Date().getMonth() + 1,
-      dates: [],
-      date: [],
-      scrollMonth: 10,
-      dayWidth: 110,
+      dayData: [],
+      monthData: [],
+      yearData: [],
+      scrollMonth: 1,
+      scrollYear: 2019,
+      dayWidth: 100,
       scrollTop: 0,
       oldscrollTop: 0,
-      dispaly: true
+      dispaly: true,
+      yearArr: [],
+      displayWeek: '',
+      displayMonth: '',
+      displayDay: '',
+      displayYear: '',
+      isShow: false
     }
   },
   mounted () {
-    for (let i = 1; i <= 12; i++) {
-      this.createCurMonth(i)
-      const arr = this.dates.filter((item) => {
-        return item.class === 'lastMonth'
-      })
-      this.date.push({
-        dates: this.dates,
-        lastWidth: arr.length * this.dayWidth,
-        month: this.dates[i].month
-      })
+    for (let i = 2015; i <= 2025; i++) {
+      this.curYear = i
+      this.yearArr.push(i)
+      for (let j = 1; j <= 12; j++) {
+        this.createCurMonth(j)
+        const arr = this.dayData.filter((item) => {
+          return item.class === 'lastMonth'
+        })
+        this.monthData.push({
+          dayData: this.dayData,
+          lastWidth: arr.length * this.dayWidth,
+          month: this.dayData[j].month
+        })
+      }
+      this.yearData.push(this.monthData)
+      this.monthData = []
     }
     this.$nextTick(() => {
       this.dayWidth = this.$refs.dayItem[0].offsetWidth
@@ -77,56 +98,82 @@ export default {
       if (this.oldscrollTop === oldVal) {
         console.log('滚动开始')
         this.dispaly = true
+        this.isShow = false
       }
     }
   },
   // 创建日历
   methods: {
-    handleDayClick (day, dayIndex) {
-      console.log(day.month)
+    handleDayClick (day, dayIndex, monIndex, yearIndex) {
+      this.displayWeek = this.weekList[dayIndex % 7] // 选中日期的星期
+      this.displayYear = day.year
+      this.displayMonth = day.month
+      this.displayDay = day.day
+      if (day.class !== 'curMonth') return
+      this.isShow = true
+      console.log(this.yearData[yearIndex][monIndex].dayData)
+      this.yearData[yearIndex][monIndex].dayData.forEach((cur, index) => {
+        if (dayIndex === index) {
+          cur.isActive = true // 日期被选中
+        } else {
+          cur.isActive = false
+        }
+      })
+      console.log(this.displayWeek)
     },
     initScroll () { // 日历显示初始位置，即滚动到2020年10月份的
-      const element = this.$refs.monItem
-      let eleHeight = 0
-      for (let i = 0; i < new Date().getMonth(); i++) {
-        eleHeight += element[i].offsetHeight
+      const yearItem = this.$refs.yearItem
+      const monItem = this.$refs.monItem
+      let monHeight = 0
+      let yearHeight = 0
+      const yearlen = new Date().getFullYear() - 2015 // 1
+      const tt = yearlen * 12
+      const monlen = tt + new Date().getMonth()
+      for (let i = 0; i < yearlen; i++) {
+        yearHeight += yearItem[i].offsetHeight
       }
-      if (this.curYear === new Date().getFullYear()) {
-        this.$refs.scrollList.scrollTo(0, eleHeight)
+      for (let i = tt; i < monlen; i++) {
+        monHeight += monItem[i].offsetHeight
       }
+      const sum = monHeight + yearHeight
+      console.log(sum)
+      this.$refs.scrollList.scrollTo(0, sum)
     },
     createCurDate () {
       const curMonthdays = new Date(this.curYear, this.curMonth, 0).getDate() // 获取当月的天数
       const lastMonthdays = new Date(this.curYear, this.curMonth - 1, 0).getDate() // 获取上个月天数
       const firstDay = new Date(this.curYear, this.curMonth - 1, 1).getDay() // 当月第一天的星期数
-      this.dates = []
+      this.dayData = []
 
       for (let i = lastMonthdays - firstDay + 1; i <= lastMonthdays; i++) {
-        this.dates.push({
+        this.dayData.push({
           day: i,
           year: this.curYear,
           month: this.curMonth,
+          isActive: false,
           class: 'lastMonth'
         })
       }
 
       for (let i = 1; i <= curMonthdays; i++) {
-        this.dates.push({
+        this.dayData.push({
           day: i,
           year: this.curYear,
           month: this.curMonth,
+          isActive: false,
           class: 'curMonth'
         })
       }
 
-      const nextDays = 7 - this.dates.length % 7 // 理解一下?
+      const nextDays = 7 - this.dayData.length % 7
       if (nextDays < 7 && nextDays > 0) {
         let day = 0
         for (let i = 0; i < nextDays; i++) {
-          this.dates.push({
+          this.dayData.push({
             day: ++day,
             year: this.curYear,
             month: this.curMonth + 1,
+            isActive: false,
             class: 'nextMonth'
           })
         }
@@ -137,44 +184,17 @@ export default {
       this.createCurDate()
     },
     handleScroll (e) {
-      // console.log(e.target.scrollTop)
       this.scrollTop = e.target.scrollTop
-      if (e.target.scrollTop === 0) { // 如果滚动到顶部，就推到前一年的日历
-        this.$nextTick(function () {
-          this.$refs.scrollList.scrollTo(0, e.target.scrollHeight - e.target.clientHeight)
-          this.curYear--
-        })
-        this.date = []
-        this.createCurDate()
-        for (let i = 1; i <= 12; i++) {
-          this.createCurMonth(i)
-          const arr = this.dates.filter((item) => {
-            return item.class === 'lastMonth'
-          })
-          this.date.push({
-            dates: this.dates,
-            lastWidth: arr.length * this.dayWidth
-          })
-        }
+      const yearItemHeight = (e.target.scrollHeight) / (this.yearData.length)
+      const monItemHeight = (e.target.scrollHeight) / (this.yearData.length * 12)
+      const num = Math.round((e.target.scrollTop / monItemHeight) + 1)
+      if (num % 12 !== 0) {
+        this.scrollMonth = num % 12
+      } else {
+        this.scrollMonth = 12
       }
-      if (e.target.scrollTop === (e.target.scrollHeight - e.target.clientHeight)) {
-        e.target.scrollTop = 0
-        this.curYear++
-        this.date = []
-        this.createCurDate()
-        for (let i = 1; i <= 12; i++) {
-          this.createCurMonth(i)
-          const arr = this.dates.filter((item) => {
-            return item.class === 'lastMonth'
-          })
-          this.date.push({
-            dates: this.dates,
-            lastWidth: arr.length * this.dayWidth
-          })
-        }
-      }
-      const distance = e.target.scrollHeight - e.target.clientHeight
-      this.scrollMonth = Math.abs(Math.ceil((e.target.scrollTop + 10) / (distance / 12)))
+      const index = Math.ceil((e.target.scrollTop + 10) / yearItemHeight) - 1
+      this.scrollYear = this.yearArr[index]
     }
   }
 }
@@ -184,15 +204,23 @@ export default {
 @import "../assets/css/variable";
 @import "../assets/css/mixin";
 .calendar {
-    position: relative;
     margin: 0 auto;
     margin-top: 50px;
+    .titel {
+      position: absolute;
+      top: 50px;
+      left: 10%;
+      @include font_size($font_medium);
+    }
+    .calendarPanel {
+      margin-top: 120px;
+    }
 }
 .container {
-    // height: 1200px;
+    // position: relative;
     @include font_size($font_small);
     border: 0.8px solid rgba(0, 0, 0, 0.4);
-    border-top: 0
+    border-top: 0;
 }
 .weekPanel {
     border-bottom: 0.8px solid rgba(0, 0, 0, 0.4);
@@ -227,13 +255,37 @@ export default {
         height: 100px;
         text-align: center;
         line-height: 100px;
+        cursor: pointer;
         &.lastMonth,
         &.nextMonth {
             color: #bbbbbb;
         }
+        &::after {
+            content: "";
+            display: block;
+            position: absolute;
+            z-index: -1;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-color: transparent;
+        }
+        &:hover::after {
+            background-color: #dedede;
+        }
+        &.active {
+            color: #fff;
+            &::after {
+                background-color: red;
+            }
+            &.today {
+                color: #fff;
+            }
+        }
         &.today {
-          background: red;
-          color: #ffffff;
+          color: red;
           border-radius: 50%;
         }
         li {
@@ -244,7 +296,7 @@ export default {
 }
 .scroll-date {
     position: fixed;
-    top: 100px;
+    top: 170px;
     left: 40%;
     @include font_size($font_large);
     font-weight: bold;
