@@ -60,27 +60,13 @@ export default {
       displayMonth: '',
       displayDay: '',
       displayYear: '',
-      isShow: false
+      isShow: false,
+      startYear: new Date().getFullYear() - 1,
+      endYear: new Date().getFullYear() + 1
     }
   },
   mounted () {
-    for (let i = 2015; i <= 2025; i++) {
-      this.curYear = i
-      this.yearArr.push(i)
-      for (let j = 1; j <= 12; j++) {
-        this.createCurMonth(j)
-        const arr = this.dayData.filter((item) => {
-          return item.class === 'lastMonth'
-        })
-        this.monthData.push({
-          dayData: this.dayData,
-          lastWidth: arr.length * this.dayWidth,
-          month: this.dayData[j].month
-        })
-      }
-      this.yearData.push(this.monthData)
-      this.monthData = []
-    }
+    this.createCalendar()
     this.$nextTick(() => {
       this.dayWidth = this.$refs.dayItem[0].offsetWidth
       this.initScroll()
@@ -104,41 +90,69 @@ export default {
   },
   // 创建日历
   methods: {
-    handleDayClick (day, dayIndex, monIndex, yearIndex) {
-      this.displayWeek = this.weekList[dayIndex % 7] // 选中日期的星期
-      this.displayYear = day.year
-      this.displayMonth = day.month
-      this.displayDay = day.day
-      if (day.class !== 'curMonth') return
-      this.isShow = true
-      console.log(this.yearData[yearIndex][monIndex].dayData)
-      this.yearData[yearIndex][monIndex].dayData.forEach((cur, index) => {
-        if (dayIndex === index) {
-          cur.isActive = true // 日期被选中
-        } else {
-          cur.isActive = false
+    // 日历面板初始化，得到yearData数据，层叠关系：yearData( monthData (dayData) )
+    // 初始化后yearData数组有2019与2020两个数据，在快滑动到2019顶部时补充2018的数据，在快滑动到2020底部时补充2020的数据
+    fillLastCalendar () {
+      // 输入起始年月
+      this.yearArr.unshift(this.startYear) // 收集年份到yearArr数组
+      for (let j = 1; j <= 12; j++) { // 月
+        this.createCurMonth(j)
+        const arr = this.dayData.filter((item) => {
+          return item.class === 'lastMonth'
+        })
+        this.monthData.push({
+          dayData: this.dayData,
+          lastWidth: arr.length * this.dayWidth,
+          month: this.dayData[j].month
+        })
+      }
+      this.yearData.unshift(this.monthData)
+      this.monthData = []
+    },
+    fillNextCalendar () {
+      // 输入起始年月
+      this.yearArr.push(this.startYear) // 收集年份到yearArr数组
+      for (let j = 1; j <= 12; j++) { // 月
+        this.createCurMonth(j)
+        const arr = this.dayData.filter((item) => {
+          return item.class === 'lastMonth'
+        })
+        this.monthData.push({
+          dayData: this.dayData,
+          lastWidth: arr.length * this.dayWidth,
+          month: this.dayData[j].month
+        })
+      }
+      this.yearData.push(this.monthData)
+      this.monthData = []
+    },
+    createCalendar () {
+      // 输入起始年月
+      const startYear = this.startYear // 2019--2020
+      const endYear = startYear + 1
+      for (let i = startYear; i <= endYear; i++) { // 年
+        this.curYear = i
+        this.yearArr.push(i) // 收集年份到yearArr数组
+        for (let j = 1; j <= 12; j++) { // 月
+          this.createCurMonth(j)
+          const arr = this.dayData.filter((item) => {
+            return item.class === 'lastMonth'
+          })
+          this.monthData.push({
+            dayData: this.dayData,
+            lastWidth: arr.length * this.dayWidth,
+            month: this.dayData[j].month
+          })
         }
-      })
-      console.log(this.displayWeek)
-    },
-    initScroll () { // 日历显示初始位置，即滚动到2020年10月份的
-      const yearItem = this.$refs.yearItem
-      const monItem = this.$refs.monItem
-      let monHeight = 0
-      let yearHeight = 0
-      const yearlen = new Date().getFullYear() - 2015 // 1
-      const tt = yearlen * 12
-      const monlen = tt + new Date().getMonth()
-      for (let i = 0; i < yearlen; i++) {
-        yearHeight += yearItem[i].offsetHeight
+        this.yearData.push(this.monthData)
+        this.monthData = []
       }
-      for (let i = tt; i < monlen; i++) {
-        monHeight += monItem[i].offsetHeight
-      }
-      const sum = monHeight + yearHeight
-      console.log(sum)
-      this.$refs.scrollList.scrollTo(0, sum)
     },
+    createCurMonth (month) {
+      this.curMonth = month
+      this.createCurDate() // 日
+    },
+    // 创建日期数据
     createCurDate () {
       const curMonthdays = new Date(this.curYear, this.curMonth, 0).getDate() // 获取当月的天数
       const lastMonthdays = new Date(this.curYear, this.curMonth - 1, 0).getDate() // 获取上个月天数
@@ -179,11 +193,58 @@ export default {
         }
       }
     },
-    createCurMonth (month) {
-      this.curMonth = month
-      this.createCurDate()
+    // 日期点击处理
+    handleDayClick (day, dayIndex, monIndex, yearIndex) {
+      this.displayWeek = this.weekList[dayIndex % 7] // 选中日期的星期
+      this.displayYear = day.year
+      this.displayMonth = day.month
+      this.displayDay = day.day
+      if (day.class !== 'curMonth') return
+      this.isShow = true
+      console.log(this.yearData[yearIndex][monIndex].dayData)
+      this.yearData[yearIndex][monIndex].dayData.forEach((cur, index) => {
+        if (dayIndex === index) {
+          cur.isActive = true // 日期被选中
+        } else {
+          cur.isActive = false
+        }
+      })
+      console.log(this.displayWeek)
     },
+    // 滚动到初始位置，即日历当前月份
+    initScroll () {
+      const yearItem = this.$refs.yearItem
+      const monItem = this.$refs.monItem
+      let monHeight = 0
+      let yearHeight = 0
+      const yearlen = new Date().getFullYear() - this.startYear
+      const tt = yearlen * 12
+      const monlen = tt + new Date().getMonth()
+      for (let i = 0; i < yearlen; i++) {
+        yearHeight += yearItem[i].offsetHeight
+      }
+      for (let i = tt; i < monlen; i++) {
+        monHeight += monItem[i].offsetHeight
+      }
+      const sum = monHeight + yearHeight
+      console.log(sum)
+      this.$refs.scrollList.scrollTo(0, sum)
+    },
+    // 处理滚动
     handleScroll (e) {
+      // 滚动事件触发下拉事件
+      console.log(e.target.scrollHeight - e.target.scrollTop - e.target.clientHeight) // 值为0即滚动到底部，可触发下来事件
+      if (e.target.scrollTop === 0) {
+        this.startYear = this.startYear - 1
+        this.curYear = this.startYear
+        this.fillLastCalendar()
+        console.log('现在是滚动到顶部top')
+      }
+      if ((e.target.scrollHeight - e.target.scrollTop - e.target.clientHeight) <= 0) {
+        // this.curYear = this.curYear + 1
+        // this.fillNextCalendar()
+        console.log('已经滚动到底部bottom')
+      }
       this.scrollTop = e.target.scrollTop
       const yearItemHeight = (e.target.scrollHeight) / (this.yearData.length)
       const monItemHeight = (e.target.scrollHeight) / (this.yearData.length * 12)
