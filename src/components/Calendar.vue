@@ -91,7 +91,7 @@ export default {
   // 创建日历
   methods: {
     // 日历面板初始化，得到yearData数据，层叠关系：yearData( monthData (dayData) )
-    // 初始化后yearData数组有2019与2020两个数据，在快滑动到2019顶部时补充2018的数据，在快滑动到2020底部时补充2020的数据
+    // 初始化后yearData数组有2019与2020两个数据，在快滑动到2019顶部时补充2018的数据，在快滑动到2020底部时补充2021的数据
     fillLastCalendar () {
       // 输入起始年月
       this.yearArr.unshift(this.startYear) // 收集年份到yearArr数组
