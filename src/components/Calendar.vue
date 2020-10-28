@@ -3,6 +3,9 @@
       <transition name="fade">
           <div v-show="isShow" class="titel">当前选择的日期为：{{ displayYear }}年{{ displayMonth }}月{{ displayDay }}日 星期{{ displayWeek }}</div>
       </transition>
+      <div class="weekPanel">
+          <div v-for="item in weekList" :key="item">{{item}}</div>
+      </div>
       <div class="container">
          <!-- 浮动日期 -->
         <transition name="fade">
@@ -10,9 +13,6 @@
         </transition>
           <!-- 日历面板 -->
           <div class="calendarPanel">
-              <div class="weekPanel">
-                  <div v-for="item in weekList" :key="item">{{item}}</div>
-              </div>
               <div class="dayPanel" ref="scrollList" @scroll="handleScroll">
                     <div class="daySeciton">
                         <div v-for="(year, yearIndex) in yearData" :key="yearIndex" ref="yearItem">
@@ -61,8 +61,8 @@ export default {
       displayDay: '',
       displayYear: '',
       isShow: false,
-      startYear: new Date().getFullYear() - 1,
-      endYear: new Date().getFullYear() + 1
+      lastYear: new Date().getFullYear() - 1,
+      nextYear: new Date().getFullYear()
     }
   },
   mounted () {
@@ -91,44 +91,56 @@ export default {
   // 创建日历
   methods: {
     // 日历面板初始化，得到yearData数据，层叠关系：yearData( monthData (dayData) )
-    // 初始化后yearData数组有2019与2020两个数据，在快滑动到2019顶部时补充2018的数据，在快滑动到2020底部时补充2021的数据
+    // 初始化2019与2020两个年份，fillLastCalendar填充2018和2019两个年份
     fillLastCalendar () {
       // 输入起始年月
-      this.yearArr.unshift(this.startYear) // 收集年份到yearArr数组
-      for (let j = 1; j <= 12; j++) { // 月
-        this.createCurMonth(j)
-        const arr = this.dayData.filter((item) => {
-          return item.class === 'lastMonth'
-        })
-        this.monthData.push({
-          dayData: this.dayData,
-          lastWidth: arr.length * this.dayWidth,
-          month: this.dayData[j].month
+      for (let i = this.lastYear; i >= this.lastYear - 1; i--) {
+        this.yearArr.unshift(i) // 收集年份到yearArr数组
+        this.curYear = i
+        for (let j = 1; j <= 12; j++) { // 月
+          this.createCurMonth(j)
+          const arr = this.dayData.filter((item) => {
+            return item.class === 'lastMonth'
+          })
+          this.monthData.push({
+            dayData: this.dayData,
+            lastWidth: arr.length * this.dayWidth,
+            month: this.dayData[j].month
+          })
+        }
+        this.yearData.unshift(this.monthData)
+        this.monthData = []
+        this.$nextTick(() => {
+          const dom = this.$refs.yearItem
+          const vDom = dom[1]
+          vDom.scrollIntoView(true)
+          vDom.scrollIntoView({ behavior: 'smooth' })
         })
       }
-      this.yearData.unshift(this.monthData)
-      this.monthData = []
     },
+    // 初始化2019与2020两个年份，fillNextCalendar填充2020和2021两个年份
     fillNextCalendar () {
-      // 输入起始年月
-      this.yearArr.push(this.startYear) // 收集年份到yearArr数组
-      for (let j = 1; j <= 12; j++) { // 月
-        this.createCurMonth(j)
-        const arr = this.dayData.filter((item) => {
-          return item.class === 'lastMonth'
-        })
-        this.monthData.push({
-          dayData: this.dayData,
-          lastWidth: arr.length * this.dayWidth,
-          month: this.dayData[j].month
-        })
+      for (let i = this.nextYear; i <= this.nextYear + 1; i++) {
+        this.yearArr.push(i) // 收集年份到yearArr数组
+        this.curYear = i
+        for (let j = 1; j <= 12; j++) { // 月
+          this.createCurMonth(j)
+          const arr = this.dayData.filter((item) => {
+            return item.class === 'lastMonth'
+          })
+          this.monthData.push({
+            dayData: this.dayData,
+            lastWidth: arr.length * this.dayWidth,
+            month: this.dayData[j].month
+          })
+        }
+        this.yearData.push(this.monthData)
+        this.monthData = []
       }
-      this.yearData.push(this.monthData)
-      this.monthData = []
     },
     createCalendar () {
       // 输入起始年月
-      const startYear = this.startYear // 2019--2020
+      const startYear = this.lastYear // 2019--2020
       const endYear = startYear + 1
       for (let i = startYear; i <= endYear; i++) { // 年
         this.curYear = i
@@ -195,13 +207,19 @@ export default {
     },
     // 日期点击处理
     handleDayClick (day, dayIndex, monIndex, yearIndex) {
+      this.yearData.forEach((cur, index) => {
+        cur.forEach((cur, index) => {
+          cur.dayData.forEach((cur, index) => {
+            cur.isActive = false
+          })
+        })
+      })
       this.displayWeek = this.weekList[dayIndex % 7] // 选中日期的星期
       this.displayYear = day.year
       this.displayMonth = day.month
       this.displayDay = day.day
       if (day.class !== 'curMonth') return
       this.isShow = true
-      console.log(this.yearData[yearIndex][monIndex].dayData)
       this.yearData[yearIndex][monIndex].dayData.forEach((cur, index) => {
         if (dayIndex === index) {
           cur.isActive = true // 日期被选中
@@ -217,7 +235,7 @@ export default {
       const monItem = this.$refs.monItem
       let monHeight = 0
       let yearHeight = 0
-      const yearlen = new Date().getFullYear() - this.startYear
+      const yearlen = new Date().getFullYear() - this.lastYear
       const tt = yearlen * 12
       const monlen = tt + new Date().getMonth()
       for (let i = 0; i < yearlen; i++) {
@@ -235,26 +253,33 @@ export default {
       // 滚动事件触发下拉事件
       console.log(e.target.scrollHeight - e.target.scrollTop - e.target.clientHeight) // 值为0即滚动到底部，可触发下来事件
       if (e.target.scrollTop === 0) {
-        this.startYear = this.startYear - 1
-        this.curYear = this.startYear
         this.fillLastCalendar()
+        setTimeout(() => {
+          this.yearArr.splice(1, 1)
+          this.yearData.splice(1, 1)
+        }, 200)
+        this.lastYear = this.lastYear - 1
         console.log('现在是滚动到顶部top')
       }
       if ((e.target.scrollHeight - e.target.scrollTop - e.target.clientHeight) <= 0) {
-        // this.curYear = this.curYear + 1
-        // this.fillNextCalendar()
+        this.fillNextCalendar()
+        this.$nextTick(() => {
+          this.yearArr.splice(-2, 1)
+          this.yearData.splice(-2, 1)
+        }, 200)
+        this.nextYear = this.nextYear + 1
         console.log('已经滚动到底部bottom')
       }
       this.scrollTop = e.target.scrollTop
       const yearItemHeight = (e.target.scrollHeight) / (this.yearData.length)
       const monItemHeight = (e.target.scrollHeight) / (this.yearData.length * 12)
-      const num = Math.round((e.target.scrollTop / monItemHeight) + 1)
+      const num = Math.floor((e.target.scrollTop / monItemHeight) + 1)
       if (num % 12 !== 0) {
         this.scrollMonth = num % 12
       } else {
         this.scrollMonth = 12
       }
-      const index = Math.ceil((e.target.scrollTop + 10) / yearItemHeight) - 1
+      const index = Math.ceil((e.target.scrollTop + 20) / yearItemHeight) - 1
       this.scrollYear = this.yearArr[index]
     }
   }
@@ -269,100 +294,105 @@ export default {
     margin-top: 50px;
     .titel {
       position: absolute;
-      top: 50px;
+      top: 20px;
       left: 10%;
       @include font_size($font_medium);
     }
-    .calendarPanel {
-      margin-top: 120px;
-    }
+  .weekPanel {
+      position: fixed;
+      top: 75px;
+      width: 100%;
+      @include font_size($font_small);
+      border-bottom: .8px solid rgba(0, 0, 0, .4);
+      z-index: 999;
+      div {
+          display: inline-block;
+          width: 14%;
+          height: 40px;
+          text-align: center;
+          font-weight: bold;
+          line-height: 40px;
+      }
+  }
 }
+// 浮动区域
 .container {
-    // position: relative;
-    @include font_size($font_small);
-    border: 0.8px solid rgba(0, 0, 0, 0.4);
-    border-top: 0;
-}
-.weekPanel {
-    border-bottom: 0.8px solid rgba(0, 0, 0, 0.4);
-    margin-bottom: 30px;
-    div {
-        display: inline-block;
-        width: 14%;
-        height: 40px;
-        text-align: center;
-        font-weight: bold;
-        line-height: 40px;
-    }
-}
-.dayPanel {
     position: relative;
-    height: 100vh;
-    overflow: hidden;
-    overflow-y: scroll;
-    .monthName {
-        font-weight: bold;
+    margin-top: 120px;
+    @include font_size($font_small);
+    border: .8px solid rgba(0, 0, 0, .4);
+    border-top: 0;
+    z-index: 1;
+    .scroll-date {
+        position: fixed;
+        top: 120px;
+        left: 40%;
         @include font_size($font_large);
-        text-align: left;
-        padding: 10px;
-        margin-bottom: 20px;
-        margin-top: 20px;
-        border-bottom: 0.8px solid rgba(0, 0, 0, 0.4);
-    }
-    ul {
-        position: relative;
-        display: inline-block;
-        width: 14%;
-        height: 100px;
+        font-weight: bold;
         text-align: center;
-        line-height: 100px;
-        cursor: pointer;
-        &.lastMonth,
-        &.nextMonth {
-            color: #bbbbbb;
+    }
+    .dayPanel {
+        position: relative;
+        overflow: hidden;
+        overflow-y: scroll;
+        height: 90vh;
+        .monthName {
+            padding: 10px;
+            margin-bottom: 20px;
+            margin-top: 20px;
+            font-weight: bold;
+            border-bottom: .8px solid rgba(0, 0, 0, .4);
+            @include font_size($font_large);
+            text-align: left;
         }
-        &::after {
-            content: "";
-            display: block;
-            position: absolute;
-            z-index: -1;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            background-color: transparent;
-        }
-        &:hover::after {
-            background-color: #dedede;
-        }
-        &.active {
-            color: #fff;
+        ul {
+            position: relative;
+            display: inline-block;
+            width: 14%;
+            height: 100px;
+            text-align: center;
+            line-height: 100px;
+            cursor: pointer;
+            &.lastMonth,
+            &.nextMonth {
+                color: #bbbbbb;
+            }
             &::after {
-                background-color: red;
+                content: "";
+                display: block;
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                border-radius: 50%;
+                background-color: transparent;
+                z-index: -1;
+            }
+            &:hover::after {
+                background-color: #dedede;
+            }
+            &.active {
+                color: #fff;
+                &::after {
+                    background-color: red;
+                }
+                &.today {
+                    color: #fff;
+                }
             }
             &.today {
-                color: #fff;
+              border-radius: 50%;
+              color: red;
             }
-        }
-        &.today {
-          color: red;
-          border-radius: 50%;
-        }
-        li {
-        font-weight: bold;
-        @include font_size($font_medium);
+            li {
+            font-weight: bold;
+            @include font_size($font_medium);
+            }
         }
     }
 }
-.scroll-date {
-    position: fixed;
-    top: 170px;
-    left: 40%;
-    @include font_size($font_large);
-    font-weight: bold;
-    text-align: center;
-}
+
 .fade-enter-active, .fade-leave-active {
   transition: opacity .5s;
 }
