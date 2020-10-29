@@ -94,43 +94,42 @@ export default {
     // 初始化2019与2020两个年份，fillLastCalendar填充2018和2019两个年份
     fillLastCalendar () {
       // 输入起始年月
-      for (let i = this.lastYear; i >= this.lastYear - 1; i--) {
-        this.yearArr.unshift(i) // 收集年份到yearArr数组
-        this.curYear = i
-        for (let j = 1; j <= 12; j++) { // 月
-          this.createCurMonth(j)
-          const arr = this.dayData.filter((item) => {
-            return item.class === 'lastMonth'
-          })
-          this.monthData.push({
-            dayData: this.dayData,
-            lastWidth: arr.length * this.dayWidth,
-            month: this.dayData[j].month
-          })
-        }
-        this.yearData.unshift(this.monthData)
-        this.monthData = []
+      // for (let i = this.lastYear; i >= this.lastYear - 1; i--) {
+      const fillYear = this.lastYear - 1 // 2018
+      this.yearArr.unshift(fillYear) // 收集年份到yearArr数组
+      this.curYear = fillYear
+      for (let j = 1; j <= 12; j++) { // 月
+        this.createCurMonth(j)
+        const arr = this.dayData.filter((item) => {
+          return item.class === 'lastMonth'
+        })
+        this.monthData.push({
+          dayData: this.dayData,
+          lastWidth: arr.length * this.dayWidth,
+          month: this.dayData[j].month
+        })
       }
+      this.yearData.unshift(this.monthData)
+      this.monthData = []
     },
     // 初始化2019与2020两个年份，fillNextCalendar填充2020和2021两个年份
     fillNextCalendar () {
-      for (let i = this.nextYear; i <= this.nextYear + 1; i++) {
-        this.yearArr.push(i) // 收集年份到yearArr数组
-        this.curYear = i
-        for (let j = 1; j <= 12; j++) { // 月
-          this.createCurMonth(j)
-          const arr = this.dayData.filter((item) => {
-            return item.class === 'lastMonth'
-          })
-          this.monthData.push({
-            dayData: this.dayData,
-            lastWidth: arr.length * this.dayWidth,
-            month: this.dayData[j].month
-          })
-        }
-        this.yearData.push(this.monthData)
-        this.monthData = []
+      const fillYear = this.nextYear + 1
+      this.yearArr.push(fillYear) // 收集年份到yearArr数组
+      this.curYear = fillYear
+      for (let j = 1; j <= 12; j++) { // 月
+        this.createCurMonth(j)
+        const arr = this.dayData.filter((item) => {
+          return item.class === 'lastMonth'
+        })
+        this.monthData.push({
+          dayData: this.dayData,
+          lastWidth: arr.length * this.dayWidth,
+          month: this.dayData[j].month
+        })
       }
+      this.yearData.push(this.monthData)
+      this.monthData = []
     },
     createCalendar () {
       // 输入起始年月
@@ -251,19 +250,11 @@ export default {
           const distance = this.$refs.yearItem[0].offsetHeight + 1000
           this.$refs.scrollList.scrollTo(0, distance)
         })
-        setTimeout(() => {
-          this.yearArr.splice(1, 1)
-          this.yearData.splice(1, 1)
-        }, 200)
         this.lastYear = this.lastYear - 1
         console.log('现在是滚动到顶部top')
       }
-      if ((e.target.scrollHeight - e.target.scrollTop - e.target.clientHeight) <= 0) {
+      if ((e.target.scrollHeight - e.target.scrollTop - e.target.clientHeight) <= 1000) {
         this.fillNextCalendar()
-        this.$nextTick(() => {
-          this.yearArr.splice(-2, 1)
-          this.yearData.splice(-2, 1)
-        }, 200)
         this.nextYear = this.nextYear + 1
         console.log('已经滚动到底部bottom')
       }
