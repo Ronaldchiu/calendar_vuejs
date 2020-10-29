@@ -110,12 +110,6 @@ export default {
         }
         this.yearData.unshift(this.monthData)
         this.monthData = []
-        this.$nextTick(() => {
-          const dom = this.$refs.yearItem
-          const vDom = dom[1]
-          vDom.scrollIntoView(true)
-          vDom.scrollIntoView({ behavior: 'smooth' })
-        })
       }
     },
     // 初始化2019与2020两个年份，fillNextCalendar填充2020和2021两个年份
@@ -245,7 +239,6 @@ export default {
         monHeight += monItem[i].offsetHeight
       }
       const sum = monHeight + yearHeight
-      console.log(sum)
       this.$refs.scrollList.scrollTo(0, sum)
     },
     // 处理滚动
@@ -253,7 +246,17 @@ export default {
       // 滚动事件触发下拉事件
       console.log(e.target.scrollHeight - e.target.scrollTop - e.target.clientHeight) // 值为0即滚动到底部，可触发下来事件
       if (e.target.scrollTop === 0) {
-        this.fillLastCalendar()
+        this.fillLastCalendar() // e.g. 生成2018与2019年数据（2018-2019-2019-2020）
+        this.$nextTick(() => {
+          const distance = this.$refs.yearItem[0].offsetHeight
+          this.$refs.scrollList.scrollTo(0, distance)
+        })
+        // this.$nextTick(() => {
+        //   const dom = this.$refs.yearItem
+        //   const vDom = dom[1]
+        //   vDom.scrollIntoView(true)
+        //   vDom.scrollIntoView({ block: 'end', behavior: 'smooth' })
+        // })
         setTimeout(() => {
           this.yearArr.splice(1, 1)
           this.yearData.splice(1, 1)
