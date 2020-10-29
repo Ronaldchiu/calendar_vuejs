@@ -15,10 +15,10 @@
           <div class="calendarPanel">
               <div class="dayPanel" ref="scrollList" @scroll="handleScroll">
                     <div class="daySeciton">
-                        <div v-for="(year, yearIndex) in yearData" :key="yearIndex" ref="yearItem">
-                            <div v-for="(month, monIndex) in year" :key="monIndex" ref="monItem">
+                        <div v-for="(year, yearIndex) in yearData" :key="year.curYear" ref="yearItem">
+                            <div v-for="(month, monIndex) in year.monthData" :key="month.month" ref="monItem">
                                 <div class="monthName" :style="{ marginLeft: month.lastWidth + 'px'}">{{month.month}}月</div>
-                                <ul v-for="(day, dayIndex) in month.dayData" :key="dayIndex"
+                                <ul v-for="(day, dayIndex) in month.dayData" :key="day.date"
                                 :class="[day.class,
                                 day.isActive ? 'active' : '',
                                 day.day === selectToday && day.year === selectYear & day.class === 'curMonth' && day.month === selectMonth ? 'today' : '']"
@@ -62,7 +62,8 @@ export default {
       displayYear: '',
       isShow: false,
       lastYear: new Date().getFullYear() - 1,
-      nextYear: new Date().getFullYear()
+      nextYear: new Date().getFullYear(),
+      bottom: 0
     }
   },
   mounted () {
@@ -73,6 +74,7 @@ export default {
     })
   },
   watch: {
+    // 监听滚动开始与结束
     scrollTop (newVal, oldVal) {
       setTimeout(() => {
         if (newVal === this.scrollTop) {
@@ -86,15 +88,20 @@ export default {
         this.dispaly = true
         this.isShow = false
       }
+      if (newVal === 0) {
+        this.fillLastCalendar()
+        console.log('滚动到顶部')
+      }
+      if ((this.bottom - newVal) === 0) {
+        console.log('滚动到底部')
+      }
     }
   },
   // 创建日历
   methods: {
     // 日历面板初始化，得到yearData数据，层叠关系：yearData( monthData (dayData) )
-    // 初始化2019与2020两个年份，fillLastCalendar填充2018和2019两个年份
+    // 向上补充数据
     fillLastCalendar () {
-      // 输入起始年月
-      // for (let i = this.lastYear; i >= this.lastYear - 1; i--) {
       const fillYear = this.lastYear - 1 // 2018
       this.yearArr.unshift(fillYear) // 收集年份到yearArr数组
       this.curYear = fillYear
@@ -109,10 +116,11 @@ export default {
           month: this.dayData[j].month
         })
       }
-      this.yearData.unshift(this.monthData)
+      this.yearData.unshift({ monthData: this.monthData, curYear: this.curYear })
       this.monthData = []
+      this.lastYear--
     },
-    // 初始化2019与2020两个年份，fillNextCalendar填充2020和2021两个年份
+    // 向下补充数据
     fillNextCalendar () {
       const fillYear = this.nextYear + 1
       this.yearArr.push(fillYear) // 收集年份到yearArr数组
@@ -128,7 +136,7 @@ export default {
           month: this.dayData[j].month
         })
       }
-      this.yearData.push(this.monthData)
+      this.yearData.push({ monthData: this.monthData, curYear: this.curYear })
       this.monthData = []
     },
     createCalendar () {
@@ -149,7 +157,7 @@ export default {
             month: this.dayData[j].month
           })
         }
-        this.yearData.push(this.monthData)
+        this.yearData.push({ monthData: this.monthData, curYear: this.curYear })
         this.monthData = []
       }
     },
@@ -170,7 +178,8 @@ export default {
           year: this.curYear,
           month: this.curMonth,
           isActive: false,
-          class: 'lastMonth'
+          class: 'lastMonth',
+          date: this.curYear + '-' + this.curMonth + '-' + i
         })
       }
 
@@ -180,7 +189,8 @@ export default {
           year: this.curYear,
           month: this.curMonth,
           isActive: false,
-          class: 'curMonth'
+          class: 'curMonth',
+          ate: this.curYear + '-' + this.curMonth + '-' + i
         })
       }
 
@@ -193,7 +203,8 @@ export default {
             year: this.curYear,
             month: this.curMonth + 1,
             isActive: false,
-            class: 'nextMonth'
+            class: 'nextMonth',
+            ate: this.curYear + '-' + this.curMonth + '-' + i
           })
         }
       }
@@ -239,25 +250,11 @@ export default {
       }
       const sum = monHeight + yearHeight
       this.$refs.scrollList.scrollTo(0, sum)
+      const vm = this.$refs.scrollList
+      this.bottom = vm.scrollHeight - vm.clientHeight
     },
     // 处理滚动
     handleScroll (e) {
-      // 滚动事件触发下拉事件
-      console.log(e.target.scrollHeight - e.target.scrollTop - e.target.clientHeight) // 值为0即滚动到底部，可触发下来事件
-      if (e.target.scrollTop < 1000) {
-        this.fillLastCalendar() // e.g. 生成2018与2019年数据（2018-2019-2019-2020）
-        this.$nextTick(() => {
-          const distance = this.$refs.yearItem[0].offsetHeight + 1000
-          this.$refs.scrollList.scrollTo(0, distance)
-        })
-        this.lastYear = this.lastYear - 1
-        console.log('现在是滚动到顶部top')
-      }
-      if ((e.target.scrollHeight - e.target.scrollTop - e.target.clientHeight) <= 1000) {
-        this.fillNextCalendar()
-        this.nextYear = this.nextYear + 1
-        console.log('已经滚动到底部bottom')
-      }
       this.scrollTop = e.target.scrollTop
       const yearItemHeight = (e.target.scrollHeight) / (this.yearData.length)
       const monItemHeight = (e.target.scrollHeight) / (this.yearData.length * 12)
@@ -286,98 +283,101 @@ export default {
       left: 10%;
       @include font_size($font_medium);
     }
-  .weekPanel {
-      position: fixed;
-      top: 75px;
-      width: 100%;
-      @include font_size($font_small);
-      border-bottom: .8px solid rgba(0, 0, 0, .4);
-      z-index: 999;
-      div {
-          display: inline-block;
-          width: 14%;
-          height: 40px;
-          text-align: center;
-          font-weight: bold;
-          line-height: 40px;
-      }
-  }
-}
-// 浮动区域
-.container {
-    position: relative;
-    margin-top: 120px;
-    @include font_size($font_small);
-    border: .8px solid rgba(0, 0, 0, .4);
-    border-top: 0;
-    z-index: 1;
-    .scroll-date {
+    .weekPanel {
         position: fixed;
-        top: 120px;
-        left: 40%;
-        @include font_size($font_large);
-        font-weight: bold;
-        text-align: center;
-    }
-    .dayPanel {
-        position: relative;
-        overflow: hidden;
-        overflow-y: scroll;
-        height: 90vh;
-        .monthName {
-            padding: 10px;
-            margin-bottom: 20px;
-            margin-top: 20px;
-            font-weight: bold;
-            border-bottom: .8px solid rgba(0, 0, 0, .4);
-            @include font_size($font_large);
-            text-align: left;
-        }
-        ul {
-            position: relative;
+        top: 75px;
+        width: 100%;
+        @include font_size($font_small);
+        border-bottom: .8px solid rgba(0, 0, 0, .4);
+        z-index: 999;
+        div {
             display: inline-block;
             width: 14%;
-            height: 100px;
+            height: 40px;
             text-align: center;
-            line-height: 100px;
-            cursor: pointer;
-            &.lastMonth,
-            &.nextMonth {
-                color: #bbbbbb;
-            }
-            &::after {
-                content: "";
-                display: block;
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                border-radius: 50%;
-                background-color: transparent;
-                z-index: -1;
-            }
-            &:hover::after {
-                background-color: #dedede;
-            }
-            &.active {
-                color: #fff;
-                &::after {
-                    background-color: red;
-                }
-                &.today {
-                    color: #fff;
-                }
-            }
-            &.today {
-              border-radius: 50%;
-              color: red;
-            }
-            li {
             font-weight: bold;
-            @include font_size($font_medium);
+            line-height: 40px;
+        }
+    }
+    // 浮动区域
+    .container {
+        position: relative;
+        margin-top: 120px;
+        @include font_size($font_small);
+        border: .8px solid rgba(0, 0, 0, .4);
+        border-top: 0;
+        z-index: 1;
+        .scroll-date {
+            position: fixed;
+            top: 120px;
+            left: 40%;
+            @include font_size($font_large);
+            font-weight: bold;
+            text-align: center;
+        }
+        .calendarPanel{
+            .dayPanel {
+                position: relative;
+                overflow: hidden;
+                overflow-y: scroll;
+                height: 100vh;
+                .monthName {
+                    padding: 10px;
+                    margin-bottom: 20px;
+                    margin-top: 20px;
+                    font-weight: bold;
+                    border-bottom: .8px solid rgba(0, 0, 0, .4);
+                    @include font_size($font_large);
+                    text-align: left;
+                }
+                ul {
+                    position: relative;
+                    display: inline-block;
+                    width: 14%;
+                    height: 100px;
+                    text-align: center;
+                    line-height: 100px;
+                    cursor: pointer;
+                    &.lastMonth,
+                    &.nextMonth {
+                        color: #bbbbbb;
+                    }
+                    &::after {
+                        content: "";
+                        display: block;
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        border-radius: 50%;
+                        background-color: transparent;
+                        z-index: -1;
+                    }
+                    &:hover::after {
+                        background-color: #dedede;
+                    }
+                    &.active {
+                        color: #fff;
+                        &::after {
+                            background-color: red;
+                        }
+                        &.today {
+                            color: #fff;
+                        }
+                    }
+                    &.today {
+                      border-radius: 50%;
+                      color: red;
+                    }
+                    li {
+                    font-weight: bold;
+                    @include font_size($font_medium);
+                    }
+                }
             }
         }
+
     }
 }
 
