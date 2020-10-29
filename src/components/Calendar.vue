@@ -245,18 +245,12 @@ export default {
     handleScroll (e) {
       // 滚动事件触发下拉事件
       console.log(e.target.scrollHeight - e.target.scrollTop - e.target.clientHeight) // 值为0即滚动到底部，可触发下来事件
-      if (e.target.scrollTop === 0) {
+      if (e.target.scrollTop < 1000) {
         this.fillLastCalendar() // e.g. 生成2018与2019年数据（2018-2019-2019-2020）
         this.$nextTick(() => {
-          const distance = this.$refs.yearItem[0].offsetHeight
+          const distance = this.$refs.yearItem[0].offsetHeight + 1000
           this.$refs.scrollList.scrollTo(0, distance)
         })
-        // this.$nextTick(() => {
-        //   const dom = this.$refs.yearItem
-        //   const vDom = dom[1]
-        //   vDom.scrollIntoView(true)
-        //   vDom.scrollIntoView({ block: 'end', behavior: 'smooth' })
-        // })
         setTimeout(() => {
           this.yearArr.splice(1, 1)
           this.yearData.splice(1, 1)
