@@ -17,7 +17,7 @@
                     <div class="daySeciton">
                         <div v-for="(year, yearIndex) in yearData" :key="year.curYear" ref="yearItem">
                             <div v-for="(month, monIndex) in year.monthData" :key="month.month" ref="monItem">
-                                <div class="monthName" :style="{ marginLeft: month.lastWidth + 'px'}">{{month.month}}月</div>
+                                <div :class="year.curYear === selectYear && month.month === selectMonth ? 'thisMonth': 'monthName'" :style="{ marginLeft: month.lastWidth + 'px'}">{{month.month}}月</div>
                                 <ul v-for="(day, dayIndex) in month.dayData" :key="day.date"
                                 :class="[day.class,
                                 day.isActive ? 'active' : '',
@@ -51,7 +51,7 @@ export default {
       yearData: [],
       scrollMonth: 1,
       scrollYear: 2019,
-      dayWidth: 100,
+      dayWidth: 108,
       scrollTop: 0,
       oldscrollTop: 0,
       dispaly: true,
@@ -81,6 +81,7 @@ export default {
           console.log('滚动结束')
           this.oldscrollTop = newVal
           this.dispaly = false
+          console.log(newVal)
         }
       }, 200)
       if (this.oldscrollTop === oldVal) {
@@ -88,11 +89,12 @@ export default {
         this.dispaly = true
         this.isShow = false
       }
-      if (newVal === 0) {
+      if (newVal < 8000) {
         this.fillLastCalendar()
         console.log('滚动到顶部')
       }
-      if ((this.bottom - newVal) === 0) {
+      if (((this.$refs.scrollList.scrollHeight - this.$refs.scrollList.clientHeight) - newVal) < 700) {
+        this.fillNextCalendar()
         console.log('滚动到底部')
       }
     }
@@ -102,7 +104,7 @@ export default {
     // 日历面板初始化，得到yearData数据，层叠关系：yearData( monthData (dayData) )
     // 向上补充数据
     fillLastCalendar () {
-      const fillYear = this.lastYear - 1 // 2018
+      const fillYear = this.lastYear - 1
       this.yearArr.unshift(fillYear) // 收集年份到yearArr数组
       this.curYear = fillYear
       for (let j = 1; j <= 12; j++) { // 月
@@ -138,6 +140,7 @@ export default {
       }
       this.yearData.push({ monthData: this.monthData, curYear: this.curYear })
       this.monthData = []
+      this.nextYear++
     },
     createCalendar () {
       // 输入起始年月
@@ -212,7 +215,7 @@ export default {
     // 日期点击处理
     handleDayClick (day, dayIndex, monIndex, yearIndex) {
       this.yearData.forEach((cur, index) => {
-        cur.forEach((cur, index) => {
+        cur.monthData.forEach((cur, index) => {
           cur.dayData.forEach((cur, index) => {
             cur.isActive = false
           })
@@ -224,7 +227,7 @@ export default {
       this.displayDay = day.day
       if (day.class !== 'curMonth') return
       this.isShow = true
-      this.yearData[yearIndex][monIndex].dayData.forEach((cur, index) => {
+      this.yearData[yearIndex].monthData[monIndex].dayData.forEach((cur, index) => {
         if (dayIndex === index) {
           cur.isActive = true // 日期被选中
         } else {
@@ -249,8 +252,8 @@ export default {
         monHeight += monItem[i].offsetHeight
       }
       const sum = monHeight + yearHeight
-      this.$refs.scrollList.scrollTo(0, sum)
       const vm = this.$refs.scrollList
+      vm.scrollTo(0, sum)
       this.bottom = vm.scrollHeight - vm.clientHeight
     },
     // 处理滚动
@@ -304,7 +307,7 @@ export default {
         position: relative;
         margin-top: 120px;
         @include font_size($font_small);
-        border: .8px solid rgba(0, 0, 0, .4);
+        // border: .8px solid rgba(0, 0, 0, .4);
         border-top: 0;
         z-index: 1;
         .scroll-date {
@@ -329,6 +332,16 @@ export default {
                     border-bottom: .8px solid rgba(0, 0, 0, .4);
                     @include font_size($font_large);
                     text-align: left;
+                }
+                .thisMonth {
+                    padding: 10px;
+                    margin-bottom: 20px;
+                    margin-top: 20px;
+                    font-weight: bold;
+                    border-bottom: .8px solid rgba(0, 0, 0, .4);
+                    @include font_size($font_large);
+                    text-align: left;
+                    color: red;
                 }
                 ul {
                     position: relative;
