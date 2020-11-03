@@ -1,7 +1,7 @@
 <template>
   <div class="calendar">
       <transition name="fade">
-          <div v-show="isShow" class="titel">当前选择的日期为：{{ displayYear }}年{{ displayMonth }}月{{ displayDay }}日 星期{{ displayWeek }}</div>
+          <div v-show="isShow" class="title">当前选择的日期为：{{ displayYear }}年{{ displayMonth }}月{{ displayDay }}日 星期{{ displayWeek }}</div>
       </transition>
       <div class="weekPanel">
           <div v-for="item in weekList" :key="item">{{item}}</div>
@@ -62,7 +62,7 @@ export default {
       displayYear: '',
       isShow: false,
       lastYear: new Date().getFullYear() - 1,
-      nextYear: new Date().getFullYear(),
+      nextYear: new Date().getFullYear(), // 2020
       bottom: 0
     }
   },
@@ -89,7 +89,7 @@ export default {
         this.dispaly = true
         this.isShow = false
       }
-      if (newVal < 8000) {
+      if (newVal < 400) {
         this.fillLastCalendar()
         console.log('滚动到顶部')
       }
@@ -102,10 +102,11 @@ export default {
   // 创建日历
   methods: {
     // 日历面板初始化，得到yearData数据，层叠关系：yearData( monthData (dayData) )
-    // 向上补充数据
+    // 向上补充数据(增加的是yearArr与yearData的数据)
     fillLastCalendar () {
       const fillYear = this.lastYear - 1
       this.yearArr.unshift(fillYear) // 收集年份到yearArr数组
+      this.yearArr.pop()
       this.curYear = fillYear
       for (let j = 1; j <= 12; j++) { // 月
         this.createCurMonth(j)
@@ -119,6 +120,7 @@ export default {
         })
       }
       this.yearData.unshift({ monthData: this.monthData, curYear: this.curYear })
+      this.yearData.pop()
       this.monthData = []
       this.lastYear--
     },
@@ -280,10 +282,10 @@ export default {
 .calendar {
     margin: 0 auto;
     margin-top: 50px;
-    .titel {
+    .title {
       position: absolute;
       top: 20px;
-      left: 10%;
+      left: 15%;
       @include font_size($font_medium);
     }
     .weekPanel {
@@ -367,9 +369,6 @@ export default {
                         background-color: transparent;
                         z-index: -1;
                     }
-                    &:hover::after {
-                        background-color: #dedede;
-                    }
                     &.active {
                         color: #fff;
                         &::after {
@@ -397,7 +396,7 @@ export default {
 .fade-enter-active, .fade-leave-active {
   transition: opacity .5s;
 }
-.fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
+.fade-enter, .fade-leave-to {
   opacity: 0;
 }
 </style>
