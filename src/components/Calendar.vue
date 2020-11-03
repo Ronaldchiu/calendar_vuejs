@@ -126,7 +126,8 @@ export default {
     },
     // 向下补充数据
     fillNextCalendar () {
-      const fillYear = this.nextYear + 1
+      const len = this.yearArr.length
+      const fillYear = this.yearArr[len - 1] + 1
       this.yearArr.push(fillYear) // 收集年份到yearArr数组
       this.curYear = fillYear
       for (let j = 1; j <= 12; j++) { // 月
@@ -285,7 +286,9 @@ export default {
     .title {
       position: absolute;
       top: 20px;
-      left: 15%;
+      left: 0;
+      right: 0;
+      margin: 0 auto;
       @include font_size($font_medium);
     }
     .weekPanel {
@@ -309,7 +312,6 @@ export default {
         position: relative;
         margin-top: 120px;
         @include font_size($font_small);
-        // border: .8px solid rgba(0, 0, 0, .4);
         border-top: 0;
         z-index: 1;
         .scroll-date {
