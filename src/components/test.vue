@@ -13,7 +13,7 @@
         </transition>
           <!-- 日历面板 -->
           <div class="calendarPanel">
-              <div class="dayPanel" ref="scrollList" @scroll.passive="handleScroll">
+              <div class="dayPanel" ref="scrollList" @scroll.passive="handleScroll" @touchstart="touchstart" @touchmove="touchmove" @touchend="touchend">
                     <div class="daySeciton">
                         <div v-for="(year, yearIndex) in yearData" :key="year.curYear" ref="yearItem">
                             <div v-for="(month, monIndex) in year.monthData" :key="month.month" ref="monItem">
@@ -96,7 +96,7 @@ export default {
         this.fillLastCalendar()
         console.log('滚动到顶部')
       }
-      if (((this.$refs.scrollList.scrollHeight - this.$refs.scrollList.clientHeight) - newVal) < 100) {
+      if (((this.$refs.scrollList.scrollHeight - this.$refs.scrollList.clientHeight) - newVal) < 700) {
         this.fillNextCalendar()
         console.log('滚动到底部')
       }
@@ -104,6 +104,39 @@ export default {
   },
   // 创建日历
   methods: {
+    touchstart (e) {
+      this.startY = e.touches[0].clientY
+      // if (this.startY - this.moveY <= 0) {
+      //   console.log('上')
+      //   if (this.scrollTop < 10000) {
+      //   // this.throttle(this.fillLastCalendar, 100)()
+      //     this.fillLastCalendar()
+      //     console.log('滚动到顶部')
+      //   }
+      // }
+      // this.fillLastCalendar()
+    },
+    touchend (e) {
+      // this.fillLastCalendar()
+    },
+    touchmove (e) {
+      // this.moveY = e.touches[0].clientY
+      // if (this.startY - this.moveY <= 0) {
+      //   console.log('上')
+      //   if (this.scrollTop < 1000) {
+      //     // this.throttle(this.fillLastCalendar, 100)()
+      //     this.fillLastCalendar()
+      //     console.log('滚动到顶部')
+      //   }
+      // }
+      // if (this.startY - this.moveY > 0) {
+      //   console.log('下')
+      //   if (((this.$refs.scrollList.scrollHeight - this.$refs.scrollList.clientHeight) - this.scrollTop) < 500) {
+      //     this.fillNextCalendar()
+      //     console.log('滚动到底部')
+      //   }
+      // }
+    },
     throttle (fn, delay) { // 节流函数
       var timer = null
       return function () {
@@ -151,7 +184,7 @@ export default {
       const len = this.yearArr.length
       const fillYear = this.yearArr[len - 1] + 1
       this.yearArr.push(fillYear) // 收集年份到yearArr数组
-      this.yearArr.shift()
+      // this.yearArr.shift()
       this.curYear = fillYear
       for (let j = 1; j <= 12; j++) { // 月
         this.createCurMonth(j)
@@ -165,10 +198,10 @@ export default {
         })
       }
       this.yearData.push({ monthData: this.monthData, curYear: this.curYear })
-      this.yearData.shift()
-      const elment = this.$refs.yearItem[len - 1]
-      elment.scrollIntoView()
-      elment.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'nearest' })
+      // this.yearData.shift()
+      // const elment = this.$refs.yearItem[len - 1]
+      // elment.scrollIntoView()
+      // elment.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'nearest' })
       this.monthData = []
       this.nextYear++
     },
