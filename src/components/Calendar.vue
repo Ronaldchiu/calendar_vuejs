@@ -13,7 +13,7 @@
         </transition>
           <!-- 日历面板 -->
           <div class="calendarPanel">
-              <div class="dayPanel" ref="scrollList" @scroll.passive="handleScroll">
+              <div class="dayPanel" ref="scrollList" @scroll.passive="handleScroll" @touchstart="touchstart" @touchmove="touchmove" @touchend="touchend">
                     <div class="daySeciton">
                         <div v-for="(year, yearIndex) in yearData" :key="year.curYear" ref="yearItem">
                             <div v-for="(month, monIndex) in year.monthData" :key="month.month" ref="monItem">
@@ -91,12 +91,12 @@ export default {
         this.dispaly = true
         this.isShow = false
       }
-      if (newVal < 800) {
+      if (newVal < 6000) {
         // this.throttle(this.fillLastCalendar, 1000)()
         this.fillLastCalendar()
         console.log('滚动到顶部')
       }
-      if (((this.$refs.scrollList.scrollHeight - this.$refs.scrollList.clientHeight) - newVal) < 100) {
+      if (((this.$refs.scrollList.scrollHeight - this.$refs.scrollList.clientHeight) - newVal) < 800) {
         this.fillNextCalendar()
         console.log('滚动到底部')
       }
@@ -104,6 +104,29 @@ export default {
   },
   // 创建日历
   methods: {
+    touchstart (e) {
+      this.startY = e.touches[0].clientY
+    },
+    touchmove (e) {
+      this.moveY = e.touches[0].clientY
+      if (this.startY - this.moveY <= 0) {
+        if (this.scrollTop < 6000) {
+          this.fillLastCalendar()
+          console.log('滚动接近顶部')
+        }
+        console.log('上滑')
+      }
+      if (this.startY - this.moveY > 0) {
+        if (((this.$refs.scrollList.scrollHeight - this.$refs.scrollList.clientHeight) - this.scrollTop) < 800) {
+          this.fillNextCalendar()
+          console.log('滚动接近底部')
+        }
+        console.log('下滑')
+      }
+    },
+    touchend (e) {
+
+    },
     throttle (fn, delay) { // 节流函数
       var timer = null
       return function () {
@@ -139,9 +162,8 @@ export default {
       this.$nextTick(() => {
         const elment = this.$refs.yearItem[0]
         elment.scrollIntoView()
-        elment.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'nearest' })
+        elment.scrollIntoView({ behavior: 'smooth', inline: 'nearest' })
       })
-      // console.log(elment)
       this.yearData.pop()
       this.monthData = []
       this.lastYear--
@@ -151,7 +173,7 @@ export default {
       const len = this.yearArr.length
       const fillYear = this.yearArr[len - 1] + 1
       this.yearArr.push(fillYear) // 收集年份到yearArr数组
-      this.yearArr.shift()
+      // this.yearArr.shift()
       this.curYear = fillYear
       for (let j = 1; j <= 12; j++) { // 月
         this.createCurMonth(j)
@@ -165,10 +187,10 @@ export default {
         })
       }
       this.yearData.push({ monthData: this.monthData, curYear: this.curYear })
-      this.yearData.shift()
-      const elment = this.$refs.yearItem[len - 1]
-      elment.scrollIntoView()
-      elment.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'nearest' })
+      // this.yearData.shift()
+      // const elment = this.$refs.yearItem[len - 1]
+      // elment.scrollIntoView()
+      // elment.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'nearest' })
       this.monthData = []
       this.nextYear++
     },
