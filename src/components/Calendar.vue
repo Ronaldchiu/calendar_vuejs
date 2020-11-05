@@ -51,7 +51,7 @@ export default {
       yearData: [],
       scrollMonth: 1,
       scrollYear: 2019,
-      dayWidth: 110,
+      dayWidth: 125,
       scrollTop: 0,
       oldscrollTop: 0,
       dispaly: true,
@@ -329,6 +329,8 @@ export default {
 <style lang="scss" scoped>
 @import "../assets/css/variable";
 @import "../assets/css/mixin";
+
+* { -webkit-overflow-scrolling: touch; }
 .calendar {
     margin: 0 auto;
     margin-top: 50px;
@@ -374,6 +376,7 @@ export default {
         .calendarPanel{
             .dayPanel {
                 position: relative;
+                -webkit-overflow-scrolling:touch;
                 overflow: hidden;
                 overflow-y: scroll;
                 height: 90vh;
