@@ -1,5 +1,6 @@
 <template>
   <div class="calendar">
+    <!-- 标题 -->
     <transition name="fade">
       <div v-show="isShow" class="title">当前选择的日期为：{{ displayYear }}年{{ displayMonth }}月{{ displayDay }}日 星期{{ displayWeek }}</div>
     </transition>
@@ -103,14 +104,14 @@ export default {
     }
   },
   mounted () {
-    this.createCalendar()
+    this.createCalendar() // 生成日历（初始生成当前连续的三个年份）
     this.$nextTick(() => {
-      this.dayWidth = this.$refs.dayItem[0].offsetWidth
-      this.initScroll()
+      this.dayWidth = this.$refs.dayItem[0].offsetWidth // 每个日期的div宽度（用于实现月份与当月第一天纵对齐）
+      this.initScroll() // 日历初始显示位置（滚动到当前月份）
     })
   },
   watch: {
-    // 监听滚动开始与结束
+    // 监听滚动
     scrollTop (newVal, oldVal) {
       setTimeout(() => {
         if (newVal === this.scrollTop) {
@@ -125,11 +126,13 @@ export default {
         this.dispaly = true
         this.isShow = false
       }
+      // 接近顶部时触发
       if (newVal < 6000) {
         // this.throttle(this.fillLastCalendar, 1000)()
         this.fillLastCalendar()
         console.log('滚动到顶部')
       }
+      // 接近底部时触发
       if (((this.$refs.scrollList.scrollHeight - this.$refs.scrollList.clientHeight) - newVal) < 800) {
         this.fillNextCalendar()
         console.log('滚动到底部')
@@ -157,9 +160,6 @@ export default {
         }
         console.log('下滑')
       }
-    },
-    touchend (e) {
-
     },
     throttle (fn, delay) { // 节流函数
       var timer = null
@@ -224,14 +224,15 @@ export default {
       this.monthData = []
       this.nextYear++
     },
+    // 创建日历初始日期（startYear到endYear的三个年份数据）
     createCalendar () {
       // 输入起始年月
-      const startYear = this.lastYear // 2019--2020
+      const startYear = this.lastYear
       const endYear = startYear + 1
       for (let i = startYear; i <= endYear; i++) { // 年
         this.curYear = i
         this.yearArr.push(i) // 收集年份到yearArr数组
-        for (let j = 1; j <= 12; j++) { // 月
+        for (let j = 1; j <= 12; j++) { // 1-12个月数据
           this.createCurMonth(j)
           const arr = this.dayData.filter((item) => {
             return item.class === 'lastMonth'
@@ -246,9 +247,10 @@ export default {
         this.monthData = []
       }
     },
+    // 创建月数据
     createCurMonth (month) {
       this.curMonth = month // 从1月开始
-      this.createCurDate() // 日
+      this.createCurDate()
     },
     // 创建日期数据
     createCurDate () {
@@ -256,7 +258,7 @@ export default {
       const lastMonthdays = new Date(this.curYear, this.curMonth - 1, 0).getDate() // 获取上个月天数
       const firstDay = new Date(this.curYear, this.curMonth - 1, 1).getDay() // 当月第一天的星期数
       this.dayData = []
-
+      // 得到本月数据中首行开头的上个月份日期
       for (let i = lastMonthdays - firstDay + 1; i <= lastMonthdays; i++) {
         let month = this.curMonth - 1
         let year = this.curYear
@@ -286,7 +288,7 @@ export default {
           gzYear: lunarDates.gzYear // 天干地支-年
         })
       }
-
+      // 得到本月数据
       for (let i = 1; i <= curMonthdays; i++) {
         const month = this.curMonth
         const year = this.curYear
@@ -312,7 +314,7 @@ export default {
           gzYear: lunarDates.gzYear // 天干地支-年
         })
       }
-
+      // 得到本月数据末行的下个月份日期
       const nextDays = 7 - this.dayData.length % 7
       if (nextDays < 7 && nextDays > 0) {
         let day = 1
@@ -411,8 +413,8 @@ export default {
 
 * { -webkit-overflow-scrolling: touch; }
 .calendar {
-    margin: 0 auto;
-    margin-top: 50px;
+  margin: 0 auto;
+  margin-top: 50px;
     .title {
       position: absolute;
       top: 20px;
@@ -422,112 +424,111 @@ export default {
       @include font_size($font_medium);
     }
     .weekPanel {
-        position: fixed;
-        top: 75px;
-        width: 100%;
-        @include font_size($font_small);
-        border-bottom: .8px solid rgba(0, 0, 0, .4);
-        z-index: 999;
-        div {
-            display: inline-block;
-            width: 14%;
-            height: 40px;
-            text-align: center;
-            font-weight: bold;
-            line-height: 40px;
-        }
+      position: fixed;
+      top: 75px;
+      width: 100%;
+      @include font_size($font_small);
+      border-bottom: .8px solid rgba(0, 0, 0, .4);
+      z-index: 999;
+      div {
+          display: inline-block;
+          width: 14%;
+          height: 40px;
+          text-align: center;
+          font-weight: bold;
+          line-height: 40px;
+      }
     }
     // 浮动区域
     .container {
-        position: relative;
-        margin-top: 120px;
-        @include font_size($font_small);
-        border-top: 0;
-        z-index: 1;
-        .scroll-date {
-            position: fixed;
-            top: 120px;
-            left: 40%;
-            @include font_size($font_large);
+      position: relative;
+      margin-top: 120px;
+      @include font_size($font_small);
+      border-top: 0;
+      z-index: 1;
+      .scroll-date {
+        position: fixed;
+        top: 120px;
+        left: 40%;
+        @include font_size($font_large);
+        font-weight: bold;
+        text-align: center;
+      }
+      .calendarPanel{
+        .dayPanel {
+          position: relative;
+          -webkit-overflow-scrolling:touch;
+          overflow: hidden;
+          overflow-y: scroll;
+          height: 90vh;
+          .monthName {
+            padding: 10px;
+            margin-bottom: 20px;
+            margin-top: 20px;
             font-weight: bold;
+            border-bottom: .8px solid rgba(0, 0, 0, .4);
+            @include font_size($font_large);
+            text-align: left;
+          }
+          .thisMonth {
+            padding: 10px;
+            margin-bottom: 20px;
+            margin-top: 20px;
+            font-weight: bold;
+            border-bottom: .8px solid rgba(0, 0, 0, .4);
+            @include font_size($font_large);
+            text-align: left;
+            color: red;
+          }
+          ul {
+            position: relative;
+            display: inline-block;
+            width: 14%;
             text-align: center;
-        }
-        .calendarPanel{
-            .dayPanel {
-                position: relative;
-                -webkit-overflow-scrolling:touch;
-                overflow: hidden;
-                overflow-y: scroll;
-                height: 90vh;
-                .monthName {
-                    padding: 10px;
-                    margin-bottom: 20px;
-                    margin-top: 20px;
-                    font-weight: bold;
-                    border-bottom: .8px solid rgba(0, 0, 0, .4);
-                    @include font_size($font_large);
-                    text-align: left;
-                }
-                .thisMonth {
-                    padding: 10px;
-                    margin-bottom: 20px;
-                    margin-top: 20px;
-                    font-weight: bold;
-                    border-bottom: .8px solid rgba(0, 0, 0, .4);
-                    @include font_size($font_large);
-                    text-align: left;
-                    color: red;
-                }
-                ul {
-                    position: relative;
-                    display: inline-block;
-                    width: 14%;
-                    text-align: center;
-                    cursor: pointer;
-                    &.lastMonth,
-                    &.nextMonth {
-                        color: #bbbbbb;
-                    }
-                    &::after {
-                        content: "";
-                        display: block;
-                        position: absolute;
-                        top: 0;
-                        left: 0;
-                        width: 100%;
-                        height: 100%;
-                        border-radius: 50%;
-                        background-color: transparent;
-                        z-index: -1;
-                    }
-                    &.active {
-                        color: #fff;
-                        &::after {
-                            background-color: red;
-                        }
-                        &.today {
-                            color: #fff;
-                        }
-                    }
-                    &.today {
-                      border-radius: 50%;
-                      color: red;
-                    }
-                    li {
-                       height: 100px;
-                       line-height: 50px;
-                       .date {
-                         font-weight: bold;
-                         @include font_size($font_medium);
-                       }
-                       .lunar {
-                         font-size: 18px;
-                       }
-                    }
-                }
+            cursor: pointer;
+            &.lastMonth,
+            &.nextMonth {
+                color: #bbbbbb;
             }
+            &::after {
+              content: "";
+              display: block;
+              position: absolute;
+              top: 0;
+              left: 0;
+              width: 100%;
+              height: 100%;
+              border-radius: 50%;
+              background-color: transparent;
+              z-index: -1;
+            }
+            &.active {
+              color: #fff;
+              &::after {
+                  background-color: red;
+              }
+              &.today {
+                  color: #fff;
+              }
+            }
+              &.today {
+                border-radius: 50%;
+                color: red;
+              }
+              li {
+                height: 100px;
+                line-height: 50px;
+                .date {
+                  font-weight: bold;
+                  @include font_size($font_medium);
+                }
+                .lunar {
+                  font-size: 18px;
+                }
+              }
+          }
         }
-
+      }
     }
 }
 
