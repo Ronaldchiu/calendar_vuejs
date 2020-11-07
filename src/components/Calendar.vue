@@ -1,71 +1,105 @@
 <template>
   <div class="calendar">
+    <transition name="fade">
+      <div v-show="isShow" class="title">当前选择的日期为：{{ displayYear }}年{{ displayMonth }}月{{ displayDay }}日 星期{{ displayWeek }}</div>
+    </transition>
+    <div class="weekPanel">
+      <div v-for="item in weekList" :key="item">{{item}}</div>
+    </div>
+    <div class="container">
+      <!-- 浮动日期 -->
       <transition name="fade">
-          <div v-show="isShow" class="title">当前选择的日期为：{{ displayYear }}年{{ displayMonth }}月{{ displayDay }}日 星期{{ displayWeek }}</div>
+        <div class="scroll-date" v-if="dispaly">{{scrollYear}}年{{scrollMonth}}月</div>
       </transition>
-      <div class="weekPanel">
-          <div v-for="item in weekList" :key="item">{{item}}</div>
-      </div>
-      <div class="container">
-         <!-- 浮动日期 -->
-        <transition name="fade">
-          <div class="scroll-date" v-if="dispaly">{{scrollYear}}年{{scrollMonth}}月</div>
-        </transition>
-          <!-- 日历面板 -->
-          <div class="calendarPanel">
-              <div class="dayPanel" ref="scrollList" @scroll.passive="handleScroll" @touchstart="touchstart" @touchmove="touchmove" @touchend="touchend">
-                    <div class="daySeciton">
-                        <div v-for="(year, yearIndex) in yearData" :key="year.curYear" ref="yearItem">
-                            <div v-for="(month, monIndex) in year.monthData" :key="month.month" ref="monItem">
-                                <div :class="year.curYear === selectYear && month.month === selectMonth ? 'thisMonth': 'monthName'" :style="{ marginLeft: month.lastWidth + 'px'}">{{month.month}}月</div>
-                                <ul v-for="(day, dayIndex) in month.dayData" :key="day.date"
-                                :class="[day.class,
-                                day.isActive ? 'active' : '',
-                                day.day === selectToday && day.year === selectYear & day.class === 'curMonth' && day.month === selectMonth ? 'today' : '']"
-                                @click="handleDayClick(day, dayIndex, monIndex, yearIndex)"
-                                >
-                                    <li ref="dayItem">{{day.day}}</li>
-                                </ul>
-                            </div>
-                          </div>
-                    </div>
-              </div>
+      <!-- 日历面板 -->
+      <div class="calendarPanel">
+        <div class="dayPanel" ref="scrollList" @scroll.passive="handleScroll" @touchstart="touchstart" @touchmove="touchmove" @touchend="touchend">
+          <div class="daySeciton">
+            <div v-for="(year, yearIndex) in yearData" :key="year.curYear" ref="yearItem">
+              <div v-for="(month, monIndex) in year.monthData" :key="month.month" ref="monItem">
+                <div :class="year.curYear === selectYear && month.month === selectMonth ? 'thisMonth': 'monthName'" :style="{ marginLeft: month.lastWidth + 'px'}">
+                  {{month.month}}月
+                </div>
+                <ul v-for="(day, dayIndex) in month.dayData" :key="day.date"
+                    :class="[day.class,
+                    day.isActive ? 'active' : '',
+                    day.day === selectToday && day.year === selectYear & day.class === 'curMonth' && day.month === selectMonth ? 'today' : '']"
+                    @click="handleDayClick(day, dayIndex, monIndex, yearIndex)"
+                  >
+                  <li ref="dayItem">
+                     <!-- 显示公历日 -->
+                     <div class="date">{{day.day}}</div>
+                     <!-- 判断是否为公历节日 -->
+                     <div v-if="day.festival != undefined" class="lunar" style="color: #ff6300">{{day.festival}}</div>
+                     <!-- 判断是否为农历节日 -->
+                     <div v-else-if="day.lunarFestival != undefined" class="lunar" style="color: #ff6300">{{day.lunarFestival}}</div>
+                     <!-- 判断是否为二十四节气 -->
+                     <div v-else-if="day.term != null" class="lunar" style="color: #7180AC">{{day.term}}</div>
+                     <!-- 都不是就显示农历日 -->
+                     <div v-else class="lunar">{{day.lunarDay}}</div>
+                  </li>
+                </ul>
+               </div>
+            </div>
           </div>
+        </div>
       </div>
+    </div>
   </div>
 </template>
 
 <script>
+import calendar from './calendar'
 export default {
   name: 'Calendar',
   data () {
     return {
       weekList: ['日', '一', '二', '三', '四', '五', '六'], // 星期数组
-      curYear: new Date().getFullYear(),
-      curMonth: new Date().getMonth() + 1,
-      selectToday: new Date().getDate(),
-      selectYear: new Date().getFullYear(),
-      selectMonth: new Date().getMonth() + 1,
-      dayData: [],
-      monthData: [],
-      yearData: [],
-      scrollMonth: 1,
-      scrollYear: 2019,
-      dayWidth: 125,
-      scrollTop: 0,
-      oldscrollTop: 0,
-      dispaly: true,
-      yearArr: [],
-      displayWeek: '',
-      displayMonth: '',
-      displayDay: '',
-      displayYear: '',
-      isShow: false,
-      lastYear: new Date().getFullYear() - 1,
-      nextYear: new Date().getFullYear(), // 2020
-      bottom: 0,
+      curYear: 0, // 当前年份
+      curMonth: 0,
+      selectToday: new Date().getDate(), // 选择日
+      selectYear: new Date().getFullYear(), // 选择年份
+      selectMonth: new Date().getMonth() + 1, // 选择月份
+      dayData: [], // 日数据数组
+      monthData: [], // 月数据数组
+      yearData: [], // 年数据数组
+      yearArr: [], // 年份数组
+      scrollMonth: 0, // 浮动月份
+      scrollYear: 0, // 浮动年份
+      dayWidth: 124,
+      scrollTop: 0, // 可视区域上方滚动值
+      oldscrollTop: 0, // 上一次的scrollTop值
+      dispaly: true, // 浮动显示阀门
+      displayWeek: '', // 标题周显示
+      displayMonth: '', // 标题月显示
+      displayDay: '', // 标题日显示
+      displayYear: '', // 标题年显示
+      isShow: false, // 标题显示阀门
+      lastYear: new Date().getFullYear() - 1, // 上一年
+      nextYear: new Date().getFullYear(), // 下一年
       startY: 0,
-      moveY: 0
+      moveY: 0,
+      festival: { // 公历节日
+        '1-1': '元旦',
+        '3-8': '妇女节',
+        '3-12': '植树节',
+        '5-1': '劳动节',
+        '5-4': '青年节',
+        '6-1': '儿童节',
+        '7-1': '建党节',
+        '8-1': '建军节',
+        '9-10': '教师节',
+        '10-1': '国庆节'
+      },
+      lunarFestival: { // 农历节日
+        '腊月-三十': '除夕',
+        '正月-初一': '春节',
+        '正月-十五': '元宵节',
+        '四月-初四': '清明节',
+        '五月-初五': '端午节',
+        '八月-十五': '中秋节',
+        '九月-初九': '重阳节'
+      }
     }
   },
   mounted () {
@@ -155,7 +189,7 @@ export default {
         this.monthData.push({
           dayData: this.dayData,
           lastWidth: arr.length * this.dayWidth,
-          month: this.dayData[j].month
+          month: j
         })
       }
       this.yearData.unshift({ monthData: this.monthData, curYear: this.curYear })
@@ -183,14 +217,10 @@ export default {
         this.monthData.push({
           dayData: this.dayData,
           lastWidth: arr.length * this.dayWidth,
-          month: this.dayData[j].month
+          month: j
         })
       }
       this.yearData.push({ monthData: this.monthData, curYear: this.curYear })
-      // this.yearData.shift()
-      // const elment = this.$refs.yearItem[len - 1]
-      // elment.scrollIntoView()
-      // elment.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'nearest' })
       this.monthData = []
       this.nextYear++
     },
@@ -209,7 +239,7 @@ export default {
           this.monthData.push({
             dayData: this.dayData,
             lastWidth: arr.length * this.dayWidth,
-            month: this.dayData[j].month
+            month: j
           })
         }
         this.yearData.push({ monthData: this.monthData, curYear: this.curYear })
@@ -217,7 +247,7 @@ export default {
       }
     },
     createCurMonth (month) {
-      this.curMonth = month
+      this.curMonth = month // 从1月开始
       this.createCurDate() // 日
     },
     // 创建日期数据
@@ -228,44 +258,94 @@ export default {
       this.dayData = []
 
       for (let i = lastMonthdays - firstDay + 1; i <= lastMonthdays; i++) {
+        let month = this.curMonth - 1
+        let year = this.curYear
+        if (month === 0) {
+          month = 12
+          year = this.curYear - 1
+        }
+        const dateStr = month + '-' + i
+        const lunarDates = calendar.solar2lunar(year, month, i)
+        const lunarDateStr = lunarDates.IMonthCn + '-' + lunarDates.IDayCn
         this.dayData.push({
-          day: i,
-          year: this.curYear,
-          month: this.curMonth,
+          day: i, // 日
+          month: month, // 月
+          year: year, // 年
+          term: lunarDates.Term, // 节气
+          lunarDay: lunarDates.IDayCn, // 农历日
+          lunarMonth: lunarDates.IMonthCn, // 农历月
+          festival: this.festival[dateStr], // 公历假日
+          lunarFestival: this.lunarFestival[lunarDateStr], // 农历假日
           isActive: false,
-          class: 'lastMonth',
-          date: this.curYear + '-' + this.curMonth + '-' + i
+          class: 'lastMonth', // 月份类-上月
+          date: year + '-' + month + '-' + i, // key
+          Animal: lunarDates.Animal, // 生肖
+          astro: lunarDates.astro, // 星座
+          gzDay: lunarDates.gzDay, // 天干地支-日
+          gzMonth: lunarDates.gzMonth, // 天干地支-月
+          gzYear: lunarDates.gzYear // 天干地支-年
         })
       }
 
       for (let i = 1; i <= curMonthdays; i++) {
+        const month = this.curMonth
+        const year = this.curYear
+        const dateStr = month + '-' + i
+        const lunarDates = calendar.solar2lunar(year, month, i)
+        const lunarDateStr = lunarDates.IMonthCn + '-' + lunarDates.IDayCn
         this.dayData.push({
-          day: i,
-          year: this.curYear,
-          month: this.curMonth,
+          day: i, // 日
+          month: month, // 月
+          year: year, // 年
+          term: lunarDates.Term, // 节气
+          lunarDay: lunarDates.IDayCn, // 农历日
+          lunarMonth: lunarDates.IMonthCn, // 农历月
+          festival: this.festival[dateStr], // 公历假日
+          lunarFestival: this.lunarFestival[lunarDateStr], // 农历假日
           isActive: false,
-          class: 'curMonth',
-          ate: this.curYear + '-' + this.curMonth + '-' + i
+          class: 'curMonth', // 月份类-当月
+          date: year + '-' + month + '-' + i, // key
+          Animal: lunarDates.Animal, // 生肖
+          astro: lunarDates.astro, // 星座
+          gzDay: lunarDates.gzDay, // 天干地支-日
+          gzMonth: lunarDates.gzMonth, // 天干地支-月
+          gzYear: lunarDates.gzYear // 天干地支-年
         })
       }
 
       const nextDays = 7 - this.dayData.length % 7
       if (nextDays < 7 && nextDays > 0) {
-        let day = 0
+        let day = 1
+        const month = this.curMonth + 1
+        const year = this.curYear
         for (let i = 0; i < nextDays; i++) {
+          const dateStr = month + '-' + day
+          const lunarDates = calendar.solar2lunar(year, month, day)
+          const lunarDateStr = lunarDates.IMonthCn + '-' + lunarDates.IDayCn
           this.dayData.push({
-            day: ++day,
-            year: this.curYear,
-            month: this.curMonth + 1,
+            date: year + '-' + month + '-' + day,
+            day: day++, // 日
+            month: month, // 月
+            year: year, // 年
+            term: lunarDates.Term, // 节气
+            lunarDay: lunarDates.IDayCn, // 农历日
+            lunarMonth: lunarDates.IMonthCn, // 农历月
+            festival: this.festival[dateStr], // 公历假日
+            lunarFestival: this.lunarFestival[lunarDateStr], // 农历假日
             isActive: false,
             class: 'nextMonth',
-            ate: this.curYear + '-' + this.curMonth + '-' + i
+            Animal: lunarDates.Animal, // 生肖
+            astro: lunarDates.astro, // 星座
+            gzDay: lunarDates.gzDay, // 天干地支-日
+            gzMonth: lunarDates.gzMonth, // 天干地支-月
+            gzYear: lunarDates.gzYear // 天干地支-年
           })
         }
       }
     },
     // 日期点击处理
     handleDayClick (day, dayIndex, monIndex, yearIndex) {
+      console.log(day)
       this.yearData.forEach((cur, index) => {
         cur.monthData.forEach((cur, index) => {
           cur.dayData.forEach((cur, index) => {
@@ -306,7 +386,6 @@ export default {
       const sum = monHeight + yearHeight
       const vm = this.$refs.scrollList
       vm.scrollTo(0, sum)
-      this.bottom = vm.scrollHeight - vm.clientHeight
     },
     // 处理滚动
     handleScroll (e) {
@@ -403,9 +482,7 @@ export default {
                     position: relative;
                     display: inline-block;
                     width: 14%;
-                    height: 100px;
                     text-align: center;
-                    line-height: 100px;
                     cursor: pointer;
                     &.lastMonth,
                     &.nextMonth {
@@ -437,8 +514,15 @@ export default {
                       color: red;
                     }
                     li {
-                    font-weight: bold;
-                    @include font_size($font_medium);
+                       height: 100px;
+                       line-height: 50px;
+                       .date {
+                         font-weight: bold;
+                         @include font_size($font_medium);
+                       }
+                       .lunar {
+                         font-size: 18px;
+                       }
                     }
                 }
             }
