@@ -14,7 +14,7 @@
       </transition>
       <!-- 日历面板 -->
       <div class="calendarPanel">
-        <div class="dayPanel" ref="scrollList" @scroll.passive="handleScroll" @touchstart="touchstart" @touchmove="touchmove" @touchend="touchend">
+        <div class="dayPanel" ref="scrollList" @scroll.passive="handleScroll" @touchstart="touchstart" @touchmove="touchmove">
           <div class="daySeciton">
             <div v-for="(year, yearIndex) in yearData" :key="year.curYear" ref="yearItem">
               <div v-for="(month, monIndex) in year.monthData" :key="month.month" ref="monItem">
